@@ -4,16 +4,18 @@ title:  "espnet"
 date:   2019-7-17 12:52:48 +0900
 categories: jekyll update
 ---
-## Project architecture
+### Project architecture
 - espnet
   - tools
     - kaldi
   - espnet
     - bin
-      - tts_train.py (Parameter settings)
+      - **tts_train.py** (Parameter settings)
+      - lm_train.py
+      - asr_train.py
     - tts
       - pytorch_backend
-        - tts.py     (Train process)
+        - **tts.py**     (Train process)
     - nets (All dl model architecture)
       - pytorch_backend
         - tacotron2
@@ -22,8 +24,10 @@ categories: jekyll update
           - encoder.py
         - transformer
           - ...
-        - e2e_tts_tacotron2.py
+        - **e2e_tts_tacotron2.py**
         - wavenet.py
+    - transform(wav data transform)
+        - spectrogram
   - egs (example by data)
     - ljspeech
       - tts1 (Algorithm different)
@@ -32,14 +36,25 @@ categories: jekyll update
           - gpu.yml
           - ...
         - util
-          -
-        - local (5_step: data_download.sh, data_prepare.sh)
+          - 
+        - local (5_step, )
+          - data_download.sh
+          - data_pre.sh
+          - 
         - run.sh (Hardware, Hyper-param, 5_Step(download, prepare, train, decode??, synthesis))
-        - cmd.sh, path.sh
+        - cmd.sh
+        - path.sh
       - tts2
-        -
+        - ?
     - blizzard
+  - utils
+    - dump.sh
+    - convert_fbank.sh
+  - tools(kaldi file)
+    - reming
 
+### Process flow
+![architect](architect.png)
 
 ## Order
 ./run.sh -> tts_train.py -> tts.py -> e2e_tts_tacotron2.py
