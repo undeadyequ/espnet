@@ -4,6 +4,30 @@ title:  "espnet"
 date:   2019-7-17 12:52:48 +0900
 categories: jekyll update
 ---
+### Good point
+    - Varied config source
+        - cmd config, env, Config file, default
+        
+    - Process flow control(bash script)
+        - Stage execute, Control config
+        - Model, method exchange by control config
+    
+    - Generalized Programming
+        - Dynamic import from config
+        - Specific parameter gatheredly set inside model (add_parameter, easily
+            changed from outside)
+        - TTS_interface
+        - Generalized argment adding in all tts
+        - Generalized train process in all tts
+
+    - Raw data and features separation
+    
+    - Project architecture
+        - experiment by data -> Model
+        - Model(Include Parameter) is Generalized
+        - Tools(Kaldi) is Generalized
+        
+
 ### Project architecture
 - espnet
   - tools
@@ -53,43 +77,86 @@ categories: jekyll update
   - tools(kaldi file)
     - reming
 
-### Process flow
 ![architect](architect.png)
 
-## Order
-./run.sh -> tts_train.py -> tts.py -> e2e_tts_tacotron2.py
+### Process flow
 
-## key code
+stage-1: Data Download
 
-```python
-# network architecture
-¥# tts_train.py
-parser.add_argument('--model-module', type=str, default="espnet.nets.pytorch_backend.e2e_tts_tacotron2:Tacotron2",
-                    help='model defined module')
+stage 0: Data preparation
 
-¥# Dynamic load Netwarks by model name
-model_class = dynamic_import(train_args.model_module)
-model = model_class(idim, odim, train_args)
-assert isinstance(model, TTSInterface)
-logging.info(model)
+    - 
+    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/${trans_type}_train ${trans_type}
+    utils/validate_data_dir.sh --no-feats data/${trans_type}_train
+stage 1: Feature Generation 
 
-¥# e2e_tts_tacotron2.py
-class Tacotron2(TTSInterface, torch.nn.Module):
-  @staticmethod
-  def add_arguments(args):
-    """Add model-specific arguments to the parser."""
-    group = parser.add_argument_group("tacotron2 model setting")")
-    # encoder
-    group.add_argument('--embed-dim', default=512, type=int,
-                       help='Number of dimension of embedding')
+    - Generate the fbank features; by default 80-dimensional fbanks on each frame
+    make_fbank.sh ...
+
+    - make a dev set
+    utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
+    ..
+    
+    - compute statistics for global mean-variance normalization
+    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
     ...
-  def __init__(self, idim, odim, args):
-    args = fill_missing_args(args, self.add_arguments)
 
-¥# dynamic_import.py
-import importlib
-def dynamic_import(import_path, alias=dict()):
-  model_path, model_name = import_path.split(":")
-  importlib(model_path)
+    - dump features for training
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_train ${feat_tr_dir}
+    ...
+    
+    - Task dependent. You have to check non-linguistic symbols used in the corpus.
 
-```
+stage 2: Dictionary and Json Data Preparation
+    
+    - make json labels
+
+
+stage 3: Text-to-speech model training
+
+    - setup feature and duration for fastspeech knowledge distillation training
+    local/setup_knowledge_dist.sh ...
+    
+    - Training
+    tts_train.py \
+       --backend ${backend} \
+       --ngpu ${ngpu} \
+       --minibatches ${N} \
+       --outdir ${expdir}/results \
+       --tensorboard-dir tensorboard/${expname} \
+       --verbose ${verbose} \
+       --seed ${seed} \
+       --resume ${resume} \
+       --train-json ${tr_json} \
+       --valid-json ${dt_json} \
+       --config ${train_config}
+    
+    tts_train.py -> tts.py -> e2e_tts_tacotron2.py -> encoder.py ...
+
+stage 4: Decoding
+
+    - average
+    average_checkpoints.py
+    
+    - decode
+    tts_decode.py
+
+stage 5: Synthesis
+
+    - convert_fbank
+    convert_fbank.sh ..
+
+stage 6: Objective Evaluation
+
+    - evaluate cer
+    local/ob_eval/evaluate_cer.sh
+
+
+### Kaldi
+    - Linux Install
+        - MKL, Protobuf, warpctc
+        - compile Kaldi
+
+    - Mac
+        - 
