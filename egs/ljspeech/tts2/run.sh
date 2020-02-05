@@ -103,7 +103,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${dev_set}/feats.scp data/${train_set}/ReadMe_luo.md.ark exp/dump_feats/dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
