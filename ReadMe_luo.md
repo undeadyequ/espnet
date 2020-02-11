@@ -7,11 +7,11 @@ categories: jekyll update
 ### Good point
     - Varied config source
         - cmd config, env, Config file, default
-        
+
     - Process flow control(bash script)
         - Stage execute, Control config
         - Model, method exchange by control config
-    
+
     - Generalized Programming
         - Dynamic import from config
         - Specific parameter gatheredly set inside model (add_parameter, easily
@@ -21,12 +21,12 @@ categories: jekyll update
         - Generalized train process in all tts
 
     - Raw data and features separation
-    
+
     - Project architecture
         - experiment by data -> Model
         - Model(Include Parameter) is Generalized
         - Tools(Kaldi) is Generalized
-        
+
 
 ### Project architecture
 - espnet
@@ -60,11 +60,11 @@ categories: jekyll update
           - gpu.yml
           - ...
         - util
-          - 
+          -
         - local (5_step, )
           - data_download.sh
           - data_pre.sh
-          - 
+          -
         - run.sh (Hardware, Hyper-param, 5_Step(download, prepare, train, decode??, synthesis))
         - cmd.sh
         - path.sh
@@ -85,10 +85,10 @@ stage-1: Data Download
 
 stage 0: Data preparation
 
-    - 
+    -
     local/data_prep.sh ${db_root}/LJSpeech-1.1 data/${trans_type}_train ${trans_type}
     utils/validate_data_dir.sh --no-feats data/${trans_type}_train
-stage 1: Feature Generation 
+stage 1: Feature Generation
 
     - Generate the fbank features; by default 80-dimensional fbanks on each frame
     make_fbank.sh ...
@@ -96,7 +96,7 @@ stage 1: Feature Generation
     - make a dev set
     utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
     ..
-    
+
     - compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
     ...
@@ -105,11 +105,11 @@ stage 1: Feature Generation
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_train ${feat_tr_dir}
     ...
-    
+
     - Task dependent. You have to check non-linguistic symbols used in the corpus.
 
 stage 2: Dictionary and Json Data Preparation
-    
+
     - make json labels
 
 
@@ -117,7 +117,7 @@ stage 3: Text-to-speech model training
 
     - setup feature and duration for fastspeech knowledge distillation training
     local/setup_knowledge_dist.sh ...
-    
+
     - Training
     tts_train.py \
        --backend ${backend} \
@@ -131,14 +131,14 @@ stage 3: Text-to-speech model training
        --train-json ${tr_json} \
        --valid-json ${dt_json} \
        --config ${train_config}
-    
+
     tts_train.py -> tts.py -> e2e_tts_tacotron2.py -> encoder.py ...
 
 stage 4: Decoding
 
     - average
     average_checkpoints.py
-    
+
     - decode
     tts_decode.py
 
@@ -151,12 +151,3 @@ stage 6: Objective Evaluation
 
     - evaluate cer
     local/ob_eval/evaluate_cer.sh
-
-
-### Kaldi
-    - Linux Install
-        - MKL, Protobuf, warpctc
-        - compile Kaldi
-
-    - Mac
-        - 
