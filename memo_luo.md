@@ -15,6 +15,7 @@ egs/*/*/stft
 egs/*/*/tensorboard
 egs/*/*/wav*
 
+
 // tools
 tools/bin
 tools/include

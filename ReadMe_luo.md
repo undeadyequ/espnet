@@ -4,28 +4,46 @@ title:  "espnet"
 date:   2019-7-17 12:52:48 +0900
 categories: jekyll update
 ---
+
+### Plan
+1. New recipes
+  - blizzard new segmented
+  - GST implementation
+
+2. Model (Tacotron, Tacotron2, Transformer, knowledge-distillation Transformer)
+  - Tacotron2
+  -
+
+
+### TTS models in EPSnet
+  - Tacotron
+  - Taoctron2
+  - Transformer
+  - Fastspeech
+
+
 ### Good point
-    - Varied config source
-        - cmd config, env, Config file, default
+- Varied config source
+    - cmd config, env, Config file, default
 
-    - Process flow control(bash script)
-        - Stage execute, Control config
-        - Model, method exchange by control config
+- Process flow control(bash script)
+    - Stage execute, Control config
+    - Model, method exchange by control config
 
-    - Generalized Programming
-        - Dynamic import from config
-        - Specific parameter gatheredly set inside model (add_parameter, easily
-            changed from outside)
-        - TTS_interface
-        - Generalized argment adding in all tts
-        - Generalized train process in all tts
+- Generalized Programming
+    - Dynamic import from config
+    - Specific parameter gatheredly set inside model (add_parameter, easily
+        changed from outside)
+    - TTS_interface
+    - Generalized argment adding in all tts
+    - Generalized train process in all tts
 
-    - Raw data and features separation
+- Raw data and features separation
 
-    - Project architecture
-        - experiment by data -> Model
-        - Model(Include Parameter) is Generalized
-        - Tools(Kaldi) is Generalized
+- Project architecture
+    - experiment by data -> Model
+    - Model(Include Parameter) is Generalized
+    - Tools(Kaldi) is Generalized
 
 
 ### Project architecture
@@ -88,6 +106,7 @@ stage 0: Data preparation
     -
     local/data_prep.sh ${db_root}/LJSpeech-1.1 data/${trans_type}_train ${trans_type}
     utils/validate_data_dir.sh --no-feats data/${trans_type}_train
+
 stage 1: Feature Generation
 
     - Generate the fbank features; by default 80-dimensional fbanks on each frame
@@ -151,3 +170,10 @@ stage 6: Objective Evaluation
 
     - evaluate cer
     local/ob_eval/evaluate_cer.sh
+
+
+### stage 0: Preparation
+
+text_f
+wav_scp_f
+utt2spk_f
