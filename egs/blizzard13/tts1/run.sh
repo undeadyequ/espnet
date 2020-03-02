@@ -9,8 +9,8 @@
 
 # general configuration
 backend=pytorch
-stage=2
-stop_stage=3
+stage=1
+stop_stage=2
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -75,7 +75,7 @@ eval_set="${trans_type}_eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/data_download.sh ${db_root}
+    #local/data_download.sh ${db_root}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -85,6 +85,14 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/data_prep.sh ${db_root}/new_segmented data/${trans_type}_train ${trans_type}
     utils/validate_data_dir.sh --no-feats --no-spk-sort data/${trans_type}_train    # luo3 The order method of
     # 2nd field is diff from 1st  (..10 ..100  VS ..10_abc ..100_abc)
+fi
+
+if False; then
+  while read id wav_f; do
+    wav_f_new_dir="/Users/rosen/Data/speech/blizzard2013_sample/new_segmented_bk"
+    wav_f_new=${wav_f_new_dir}/$(basename $wav_f)
+    local/down_sample.py $wav_f $wav_f_new $fs
+  done < data/${trans_type}_train/wav.scp
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}

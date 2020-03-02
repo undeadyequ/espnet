@@ -1,3 +1,6 @@
+### Implement
+./run.sh --backend pytorch --ngpu 0
+
 ### gitignore file
 ```
 // General
