@@ -9,7 +9,7 @@
 
 # general configuration
 backend=pytorch
-stage=1
+stage=2
 stop_stage=2
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # numebr of parallel jobs
@@ -105,6 +105,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
+
     make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
         --fs ${fs} \
         --fmax "${fmax}" \
@@ -128,7 +129,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark   # luo0 cmvn.ark
 
     # dump features for training
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \                        # luo0 train_cmd
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_dev ${feat_dt_dir}
