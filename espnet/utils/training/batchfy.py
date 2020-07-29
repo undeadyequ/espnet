@@ -342,6 +342,7 @@ def make_batchset(
     batch_frames_inout=0,
     iaxis=0,
     oaxis=0,
+    band_mels_num=1
 ):
     """Make batch set from json dictionary
 
@@ -395,7 +396,8 @@ def make_batchset(
             f"arg 'batch_sort_key' ({batch_sort_key}) should be "
             f"one of {BATCH_SORT_KEY_CHOICES}"
         )
-
+    if band_mels_num > 1:
+        pass
     # TODO(karita): remove this by creating converter from ASR to TTS json format
     batch_sort_axis = 0
     if swap_io:
@@ -454,7 +456,14 @@ def make_batchset(
             key=lambda data: int(data[1][batch_sort_key][batch_sort_axis]["shape"][0]),
             reverse=not shortest_first,
         )
-        logging.info("# utts: " + str(len(sorted_data)))
+        logging.info("# utts(before filter): " + str(len(sorted_data)))
+        # filter
+        filter_out = True
+        if filter_out:
+            sorted_data = list(filter(lambda x: x[1][batch_sort_key][batch_sort_axis]["shape"][0]
+                                                        < batch_frames_out, sorted_data))
+        logging.info("# utts:(after filter) " + str(len(sorted_data)))
+
         if count == "seq":
             batches = batchfy_by_seq(
                 sorted_data,

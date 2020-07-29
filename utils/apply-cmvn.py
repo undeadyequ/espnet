@@ -111,6 +111,7 @@ def main():
     logging.info(get_commandline_args())
 
     if ":" in args.stats_rspecifier_or_rxfilename:
+    #if ":" in args.file_reader_helper:
         is_rspcifier = True
         if args.stats_filetype == "npy":
             stats_filetype = "hdf5"

@@ -90,7 +90,7 @@ def get_parser():
     )
     parser.add_argument(
         "--report-interval-iters",
-        default=100,
+        default=1,
         type=int,
         help="Report interval iterations",
     )
@@ -182,6 +182,12 @@ def get_parser():
         "batch size is reduced if the output sequence length > ML",
     )
     parser.add_argument(
+        "--band-mels-num",
+        default=1,
+        type=int,
+        help="how many mels banded to 1",
+    )
+    parser.add_argument(
         "--num-iter-processes",
         default=0,
         type=int,
@@ -245,7 +251,7 @@ def get_parser():
     )
     parser.add_argument(
         "--num-save-attention",
-        default=5,
+        default=1,
         type=int,
         help="Number of samples of attention to be saved",
     )
@@ -286,7 +292,6 @@ def get_parser():
         type=lambda s: [str(mod) for mod in s.split(",") if s != ""],
         help="List of modules to freeze (not to train), separated by a comma.",
     )
-
     return parser
 
 

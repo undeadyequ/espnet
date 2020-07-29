@@ -122,7 +122,7 @@ class CustomUpdater(training.StandardUpdater):
         super(CustomUpdater, self).__init__(iterator, optimizer)
         self.model = model
         self.grad_clip = grad_clip
-        self.device = device
+        self.devices = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
         self.accum_grad = accum_grad
         self.forward_count = 0
@@ -138,17 +138,18 @@ class CustomUpdater(training.StandardUpdater):
         # Get the next batch (a list of json files)
         batch = train_iter.next()
         if isinstance(batch, tuple):
-            x = tuple(arr.to(self.device) for arr in batch)
+            x = tuple(arr.to(self.devices) for arr in batch)
         else:
             x = batch
             for key in x.keys():
-                x[key] = x[key].to(self.device)
+                x[key] = x[key].to(self.devices)
 
         # compute loss and gradient
         if isinstance(x, tuple):
             loss = self.model(*x).mean() / self.accum_grad
         else:
             loss = self.model(**x).mean() / self.accum_grad
+            #logging.info("ys size:{}".format(x["ys"].size()))
         loss.backward()
 
         # update parameters
@@ -329,13 +330,8 @@ def train(args):
 
     # freeze modules, if specified
     if args.freeze_mods:
-        if hasattr(model, "module"):
-            freeze_mods = ["module." + x for x in args.freeze_mods]
-        else:
-            freeze_mods = args.freeze_mods
-
         for mod, param in model.named_parameters():
-            if any(mod.startswith(key) for key in freeze_mods):
+            if any(mod.startswith(key) for key in args.freeze_mods):
                 logging.info(f"{mod} is frozen not to be updated.")
                 param.requires_grad = False
 
@@ -352,7 +348,7 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model, args.adim, args.transformer_warmup_steps, args.transformer_lr
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
@@ -544,6 +540,7 @@ def train(args):
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(args.tensorboard_dir)
+        print("registered triggering:", att_reporter)
         trainer.extend(TensorboardLogger(writer, att_reporter), trigger=report_interval)
 
     if use_sortagrad:
@@ -594,7 +591,7 @@ def decode(args):
 
     load_inputs_and_targets = LoadInputsAndTargets(
         mode="tts",
-        load_input=False,
+        load_input=True, # or False??
         sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf
@@ -694,13 +691,17 @@ def decode(args):
         batch = [(utt_id, js[utt_id])]
         data = load_inputs_and_targets(batch)
         x = torch.LongTensor(data[0][0]).to(device)
+        ys = torch.FloatTensor(data[1][0]).to(device)
         spemb = None
         if train_args.use_speaker_embedding:
             spemb = torch.FloatTensor(data[1][0]).to(device)
 
         # decode and write
         start_time = time.time()
-        outs, probs, att_ws = model.inference(x, args, spemb=spemb)
+        if train_args.model_module.split(":")[1] == "Tacotron2_GST":
+            outs, probs, att_ws = model.inference(x, ys, args, spemb=spemb)
+        else:
+            outs, probs, att_ws = model.inference(x, args, spemb=spemb)
         logging.info(
             "inference speed = %.1f frames / sec."
             % (int(outs.size(0)) / (time.time() - start_time))
