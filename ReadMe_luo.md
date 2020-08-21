@@ -5,24 +5,20 @@ date:   2019-7-17 12:52:48 +0900
 categories: jekyll update
 ---
 
-### Plan
-1. New recipes
-  - blizzard new segmented
-  - GST implementation
+### Tabel
 
-2. Model (Tacotron, Tacotron2, Transformer, knowledge-distillation Transformer)
-  - Tacotron2
-  -
+    - TTS model
+    - Data structure
+    - Project architecture
+    - Training/Decoding/Synthesis flow
 
 
 ### TTS models in EPSnet
-  - Tacotron
-  - Taoctron2
-  - Transformer
-    - 
-  - Fastspeech
-    - 
 
+    - Tacotron
+    - Taoctron2
+    - Transformer
+    - Fastspeech
 
 ### Good point
 - Varied config source
@@ -46,6 +42,102 @@ categories: jekyll update
     - experiment by data -> Model
     - Model(Include Parameter) is Generalized
     - Tools(Kaldi) is Generalized
+
+## Main Function
+
+### Data Preprocess
+
+    - tts.decode()
+data.json ->{make_batchset} List[List[Tuple[str, dict]]]...[0]
+->{LoadInputsAndTargets(one_utt...)} (List[ndarray], List[ndarray], ...[1])
+->{model.inference} outs, probs, att_wights  
+
+
+...[0]:
+1st list: Batch List(Bath size equals gpu_numbers)
+2nd list: Utterance List
+
+
+...[1]:
+
+...[2]:(in tts)
+output is values of Middle Value, showed below:
+Middle Value: OrderedDict([(x_name, List[ndarray]), (y_name, List[ndarray], (spembs_name, List[ndarray]), (spcs_name, List[ndarray]))])...
+x_name: target1
+y_name: input1
+spcs_name: input2
+
+    - tts.train()
+data.json ->{make_batchset} List[List[Tuple[str, dict]]]
+->{lambda} List[Tuple[str, dict]]
+->{LoadInputsAndTargets} (List[ndarray], List[ndarray], ...)
+->{CustomConverter} {"xs": List[tensor], "ilens":List[tensor], 
+                     "ys": List[tensor], "labels":, List[tensor],
+                     "olens:": List[tensor]}...[1]
+->{TransformDataset} dataset...
+->{ChainerDataLoader} train_iter
+->{CustomUpdater} updater
+->{training.Trainer} trainer
+->{trainer.extend(CustomEvaluater)}
+->{trainer.extend(torch_snapshot())}
+->{trainer.extend(snapshot_object(model, "model.loss.best"))}
+->{trainer.extend(att_reporter)}
+->{trainer.extend(extensions.PlotReport(plot_key))
+->{trainer.extend(extensions.LogReport)
+->{trainer.extend(extensions.PrintReport)
+->{trainer.extend(extensions.ProgressBar())
+->{trainer.extend(TensorboardLogger())
+->{trainer.extend(ShufflingEnabler([train_iter]))
+->{trainer.run()}
+->{check_early_stop(trainer, args.epochs)}
+
+
+...[1]
+"labels" is for stop prediction
+""
+...[1]
+CustomConverter and batchset are capsulized in ChainerDataLoader
+
+
+### data.json structure
+
+ - data_json
+data_json = {
+        "utt1": {
+          "utt2spk": "Tom",
+          "input": [
+                          {
+                              "feat": "/Users/rosen/speech_project/tts/espnet/egs/blizzard13/tts2_gst/dump/char_train_no_dev/feats.1.ark:29",
+                              "name": "input1",
+                              "shape": [
+                                  968,
+                                  80]
+                          },
+                          {
+                              "feat": "/Users/rosen/speech_project/tts/espnet/egs/blizzard13/tts2_gst/dump/char_train_no_dev/feats.4.ark:29",
+                              "name": "input2",
+                              "shape": [
+                                  968,
+                                  513]
+                          }
+                      ],
+          "output": [
+                    {
+                    "name": "target1",
+                    "shape": [108,42],
+                    "text": "JANE EYRE AN AUTOBIOGRAPHY BY CHARLOTTE BRONTE CHAPTER I THERE WAS NO POSSIBILITY OF TAKING A WALK THAT DAY.",
+                    "token": "J A N E <space> E Y R E <space> A N <space> A U T O B I O G R A P H Y <space> B Y <space> C H A R L O T T E <space> B R O N T E <space> C H A P T E R <space> I <space> T H E R E <space> W A S <space> N O <space> P O S S I B I L I T Y <space> O F <space> T A K I N G <space> A <space> W A L K <space> T H A T <space> D A Y .",
+                    "tokenid": "19 10 23 14 8 14 34 27 14 8 10 23 8 10 30 29 24 11 18 24 16 27 10 25 17 34 8 11 34 8 12 17 10 27 21 24 29 29 14 8 11 27 24 23 29 14 8 12 17 10 25 29 14 27 8 18 8 29 17 14 27 14 8 32 10 28 8 23 24 8 25 24 28 28 18 11 18 21 18 29 34 8 24 15 8 29 10 20 18 23 16 8 10 8 32 10 21 20 8 29 17 10 29 8 13 10 34 6"
+                    }]
+                  }
+      },
+      {
+        "utt2": {
+        ...
+      },
+        ...
+      }
+  - Make
 
 
 ### Project architecture
@@ -110,7 +202,7 @@ stage 0: Data preparation
     utils/validate_data_dir.sh --no-feats data/${trans_type}_train
 
 stage 1: Feature Generation
-
+    
     - Generate the fbank features; by default 80-dimensional fbanks on each frame
     make_fbank.sh ...
 
@@ -153,29 +245,26 @@ stage 3: Text-to-speech model training
        --valid-json ${dt_json} \
        --config ${train_config}
 
-    tts_train.py -> tts.py -> e2e_tts_tacotron2.py -> encoder.py ...
-
 stage 4: Decoding
 
-    - average
-    average_checkpoints.py
+    - Decoding text to log Mel/Linear spec, att_ws, and att_probs as well
+        1. Select best model or average several checkpoint
+            - average_checkpoints.py
 
-    - decode
-    tts_decode.py
+        2. Got 3 result above
+            - tts.decode()   [see Detailed]
 
 stage 5: Synthesis
-
-    - convert_fbank
-    convert_fbank.sh ..
+    
+    - Synthesize Wav file from Mel/Linear
+        1. apply-cmvn.sh
+            - apply cepstral mean and (optionally) variance normalization ???
+    
+        2. convert_fbank.sh(convert_fbank_to_wav.py) convert logmel_spc to linearspc
+            - if mel, then convert to Linear by SVD
+            - if lin, convert to wav by grifflin
 
 stage 6: Objective Evaluation
 
     - evaluate cer
     local/ob_eval/evaluate_cer.sh
-
-
-### stage 0: Preparation
-
-text_f
-wav_scp_f
-utt2spk_f

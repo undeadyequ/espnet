@@ -227,7 +227,7 @@ class Decoder(torch.nn.Module):
             zcs = (torch.cat([z_list[-1], att_c], dim=1)
                    if self.use_concate
                    else z_list[-1])
-            outs += [self.feat_out(zcs)]
+            outs += [self.feat_out(zcs)]   # (B, odim) * Lmax
             logits += [self.prob_out(zcs)]
             att_ws += [att_w]
 
