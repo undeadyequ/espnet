@@ -71,7 +71,7 @@ spcs_name: input2
 data.json ->{make_batchset} List[List[Tuple[str, dict]]]
 ->{lambda} List[Tuple[str, dict]]
 ->{LoadInputsAndTargets} (List[ndarray], List[ndarray], ...)
-->{CustomConverter} {"xs": List[tensor], "ilens":List[tensor], 
+->{CustomConverter} {"xs": List[tensor], "ilens":List[tensor],
                      "ys": List[tensor], "labels":, List[tensor],
                      "olens:": List[tensor]}...[1]
 ->{TransformDataset} dataset...
@@ -202,7 +202,7 @@ stage 0: Data preparation
     utils/validate_data_dir.sh --no-feats data/${trans_type}_train
 
 stage 1: Feature Generation
-    
+
     - Generate the fbank features; by default 80-dimensional fbanks on each frame
     make_fbank.sh ...
 
@@ -255,11 +255,11 @@ stage 4: Decoding
             - tts.decode()   [see Detailed]
 
 stage 5: Synthesis
-    
+
     - Synthesize Wav file from Mel/Linear
         1. apply-cmvn.sh
             - apply cepstral mean and (optionally) variance normalization ???
-    
+
         2. convert_fbank.sh(convert_fbank_to_wav.py) convert logmel_spc to linearspc
             - if mel, then convert to Linear by SVD
             - if lin, convert to wav by grifflin
