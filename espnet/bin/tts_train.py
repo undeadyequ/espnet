@@ -350,7 +350,6 @@ def main(cmd_args):
 
     if args.backend == "pytorch":
         from espnet.tts.pytorch_backend.tts import train
-
         train(args)
     else:
         raise NotImplementedError("Only pytorch is supported.")

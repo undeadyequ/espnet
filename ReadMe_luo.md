@@ -12,36 +12,12 @@ categories: jekyll update
     - Project architecture
     - Training/Decoding/Synthesis flow
 
-
 ### TTS models in EPSnet
-
     - Tacotron
     - Taoctron2
     - Transformer
     - Fastspeech
 
-### Good point
-- Varied config source
-    - cmd config, env, Config file, default
-
-- Process flow control(bash script)
-    - Stage execute, Control config
-    - Model, method exchange by control config
-
-- Generalized Programming
-    - Dynamic import from config
-    - Specific parameter gatheredly set inside model (add_parameter, easily
-        changed from outside)
-    - TTS_interface
-    - Generalized argment adding in all tts
-    - Generalized train process in all tts
-
-- Raw data and features separation
-
-- Project architecture
-    - experiment by data -> Model
-    - Model(Include Parameter) is Generalized
-    - Tools(Kaldi) is Generalized
 
 ## Main Function
 
@@ -244,7 +220,10 @@ stage 3: Text-to-speech model training
        --train-json ${tr_json} \
        --valid-json ${dt_json} \
        --config ${train_config}
+    Example
+       --backend pytorch --ngpu 1 --minibatches 0 --outdir ../../egs/blizzard13/tts2_gst/exp/results_test --tensorboard-dir ../../egs/blizzard13/tts2_gst/tensorboard_ --verbose 1 --seed 1 --train-json  /home/Data/program_data/espnet2/dump/char_train_no_dev/data.json --valid-json /home/Data/program_data/espnet2/dump/char_dev/data.json --config ../../egs/blizzard13/tts2_gst/conf/train_pytorch_tacotron2+cbhg+gst.yaml
 
+    
 stage 4: Decoding
 
     - Decoding text to log Mel/Linear spec, att_ws, and att_probs as well
@@ -268,3 +247,34 @@ stage 6: Objective Evaluation
 
     - evaluate cer
     local/ob_eval/evaluate_cer.sh
+
+
+
+## Experiment
+
+1. train experiment
+    - Real train
+        exp/char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst
+    - Debug train
+     
+
+2. Decode/Synthesis experiment
+    - real decode/synthesis
+        model.loss.best_decode         # decode
+        model.loss.best_decode_denorm  # synthesis
+
+    - debug decode
+        ...decode_ys_inference        # delete style branch
+        ...decode_ys_inference_denorm # 
+       
+1. ck_style_concnt
+       
+   --backend pytorch --ngpu 1 --minibatches 0 --outdir ../../egs/blizzard13/tts2_gst/exp/blizzard2013_char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst/results_ck_style_concnt --tensorboard-dir ../../egs/blizzard13/tts2_gst/tensorboard/blizzard2013_char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst/ck_style_concnt --verbose 1 --seed 1 --train-json  /home/Data/program_data/espnet2/dump/char_train_no_dev/data.json --valid-json /home/Data/program_data/espnet2/dump/char_dev/data.json --config ../../egs/blizzard13/tts2_gst/conf/train_pytorch_tacotron2+cbhg+gst.yaml
+
+2. 
+
+
+## Install
+1. Install Kaldi and softlink if from espnet
+2. Install Conda env
+3. 

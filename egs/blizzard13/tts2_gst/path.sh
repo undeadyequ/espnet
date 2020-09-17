@@ -9,7 +9,7 @@ export LC_ALL=C
 
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
-    source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
+    source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate espnet
 else
     source $MAIN_ROOT/tools/venv/bin/activate
 fi

@@ -701,7 +701,7 @@ def decode(args):
             outs, probs, att_ws = model.inference(x, ys, args, spemb=spemb)
             x_b = torch.unsqueeze(x, 0)
             ilens = torch.tensor(len(x))
-            att_ws = model.calculate_all_attentions(x_b, ilens, ys, spembs=spemb)  # for test
+            #att_ws = model.calculate_all_attentions(x_b, ilens, ys, spembs=spemb)  # for test
         else:
             outs, probs, att_ws = model.inference(x, args, spemb=spemb)
         logging.info(

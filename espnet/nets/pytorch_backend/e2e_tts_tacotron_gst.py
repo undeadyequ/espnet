@@ -21,6 +21,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.pytorch_backend.emodetector.gst import GST
+from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
@@ -444,11 +445,24 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
                            dropout_rate=args.dropout_rate,
                            padding_idx=padding_idx)
 
-        self.gst = GST(idim=self.odim,
-                       ref_emb_dim=self.ref_embed_dim,
-                       style_emb_dim=self.style_embed_dim)
+        #self.gst = GST(idim=self.odim,
+        #               ref_emb_dim=self.ref_embed_dim,
+        #               style_emb_dim=self.style_embed_dim)
+
+        self.gst = StyleEncoder(idim=self.odim,
+                                gst_tokens=10,
+                                gst_token_dim=512,
+                                gst_heads=8,
+                                conv_layers=6,
+                                conv_chans_list=(32, 32, 64, 64, 128, 128),
+                                conv_kernel_size=3,
+                                conv_stride=2,
+                                gru_layers=1,
+                                gru_units=128)
+
         dec_idim = args.eunits if args.spk_embed_dim is None else args.eunits + args.spk_embed_dim
         #dec_idim = dec_idim if args.style_embed_dim is None else dec_idim + args.style_embed_dim
+
         if args.atype == "location":
             att = AttLoc(dec_idim,
                          args.dunits,
@@ -551,6 +565,7 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
         hs, hlens = self.enc(xs, ilens)
         assert hs.size()[2] == self.embed_dim
         stylembs = self.gst(rs)   # (B, 1, style_dims)
+        stylembs = stylembs.unsqueeze(1)
         assert stylembs.size()[2] == self.style_embed_dim
         stylembs = stylembs.expand_as(hs)
         hs += stylembs
@@ -560,8 +575,6 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
             hs = torch.cat([hs, spembs], dim=-1)
 
         after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)   # ??? why hlens, before/after ???
-        #print("before_outs:", before_outs.size())
-        #print("after_outs:", after_outs.size())
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:

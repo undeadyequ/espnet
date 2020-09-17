@@ -1,5 +1,5 @@
-# This is tactron2 + CBHG + GST training settting
-# Gst using self-built
+# This is tactron2 + Local + CBHG + GST training settting
+# Gst using Style_encoder provided by Espnet2
 # model
 model-module: espnet.nets.pytorch_backend.e2e_tts_tacotron_gst:Tacotron2_GST
 
@@ -21,7 +21,7 @@ postnet-chans: 512
 postnet-filts: 5
 
 # attention related
-atype: forward_ta
+atype: location
 adim: 128
 aconv-chans: 32
 aconv-filts: 15      # resulting in filter-size = aconv-filts * 2 + 1
@@ -66,3 +66,15 @@ patience: 20
 # reference related
 ref-embed-dim: 512
 style-embed-dim: 512
+
+
+# GST related
+#gst_tokens: 10
+#gst_token_dim: 256
+#gst_heads: 4
+#conv_layers: 6
+#conv_chans_list: (32, 32, 64, 64, 128, 128)
+#conv_kernel_size: 3
+#conv_stride: 2
+#gru_layers: 1
+#gru_units: 128
