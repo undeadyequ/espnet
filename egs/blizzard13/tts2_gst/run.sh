@@ -35,7 +35,9 @@ win_length="" # window length
 trans_type="char"
 
 # config files
+#train_config=conf/train_pytorch_tacotron2+cbhg+local+gst.yaml # you can select from conf or conf/tuning.
 train_config=conf/train_pytorch_tacotron2+cbhg+local+gst.yaml # you can select from conf or conf/tuning.
+
                                                # now we support tacotron2, transformer, and fastspeech
                                                # see more info in the header of each config.
 decode_config=conf/decode.yaml
@@ -43,6 +45,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
+#model=snapshot.ep.99
 n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
@@ -204,7 +207,7 @@ fi
 if [ ${n_average} -gt 0 ]; then
     model=model.last${n_average}.avg.best
 fi
-outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})_no_style
+outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"

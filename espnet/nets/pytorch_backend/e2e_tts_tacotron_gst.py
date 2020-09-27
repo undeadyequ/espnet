@@ -9,6 +9,7 @@
 import logging
 
 import numpy as np
+import os
 import torch
 import torch.nn.functional as F
 
@@ -25,6 +26,7 @@ from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
+from espnet.utils.plot_attention import plot_and_save
 
 
 class GuidedAttentionLoss(torch.nn.Module):
@@ -531,7 +533,6 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
         if args.pretrained_model is not None:
             self.load_pretrained_model(args.pretrained_model)
 
-
     def forward(self, xs, ilens, ys, labels, olens, rs=None, spembs=None, extras=None, *args, **kwargs):
         """Calculate forward propagation.
 
@@ -563,22 +564,23 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
             rs = ys
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
-        assert hs.size()[2] == self.embed_dim
-        stylembs = self.gst(rs)   # (B, 1, style_dims)
+        stylembs = self.gst(rs)           # (B, 1, style_dims)
         stylembs = stylembs.unsqueeze(1)
-        assert stylembs.size()[2] == self.style_embed_dim
-        stylembs = stylembs.expand_as(hs)
+        stylembs = stylembs.expand_as(hs) # ??
         hs += stylembs
 
         if self.spk_embed_dim is not None:
             spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
             hs = torch.cat([hs, spembs], dim=-1)
 
-        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)   # ??? why hlens, before/after ???
+        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
+
+        # See att_ws
+        #plot_and_save(att_ws[0].detach().cpu().numpy(), "train_att_ws/1.png")
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])  # ??? why ???
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
@@ -670,14 +672,13 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
                                                  use_att_constraint=use_att_constraint,
                                                  backward_window=backward_window,
                                                  forward_window=forward_window)
-
         if self.use_cbhg:
             cbhg_outs = self.cbhg.inference(outs)
             return cbhg_outs, probs, att_ws
         else:
             return outs, probs, att_ws
 
-    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, keep_tensor=False, *args, **kwargs):  # ??? why not calculate directly
+    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, keep_tensor=False, *args, **kwargs):
         """Calculate all of the attention weights.
 
         Args:
@@ -699,6 +700,10 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
         self.eval()
         with torch.no_grad():
             hs, hlens = self.enc(xs, ilens)
+            stylembs = self.gst(ys)  # (B, 1, style_dims)
+            stylembs = stylembs.unsqueeze(1)
+            stylembs = stylembs.expand_as(hs)  # ??
+            hs += stylembs
             if self.spk_embed_dim is not None:
                 spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
                 hs = torch.cat([hs, spembs], dim=-1)

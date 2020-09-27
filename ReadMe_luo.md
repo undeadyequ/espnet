@@ -26,7 +26,7 @@ categories: jekyll update
     - tts.decode()
 data.json ->{make_batchset} List[List[Tuple[str, dict]]]...[0]
 ->{LoadInputsAndTargets(one_utt...)} (List[ndarray], List[ndarray], ...[1])
-->{model.inference} outs, probs, att_wights  
+->{model.inference} outs, probs, att_wights  ...[2]
 
 
 ...[0]:

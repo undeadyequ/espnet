@@ -1643,6 +1643,7 @@ class AttForwardTA(torch.nn.Module):
         c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
 
         # update transition agent prob
+        #print(c.size(), out_prev.size(), dec_z.size())
         self.trans_agent_prob = torch.sigmoid(
             self.mlp_ta(torch.cat([c, out_prev, dec_z], dim=1))
         )
