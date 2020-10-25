@@ -9,10 +9,10 @@
 
 # general configuration
 backend=pytorch
-stage=4
-stop_stage=5
+stage=5
+stop_stage=6
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
-nj=32        # numebr of parallel jobs
+nj=8        # numebr of parallel jobs
 dumpdir=/home/Data/program_data/espnet2/dump # directory to dump full features
 featsdir=/home/Data/program_data/espnet2  # directory to save fbank and stft
 verbose=1    # verbose option (if set > 0, get more log)
@@ -44,7 +44,7 @@ decode_config=conf/decode.yaml
 
 
 # decoding related
-model=model.loss.best
+model=model.loss.best_newgst_e136
 #model=snapshot.ep.99
 n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
@@ -55,6 +55,9 @@ db_root=/home/Data/blizzard2013/new_download
 
 # exp tag
 tag="" # tag for managing experiments.
+
+# reference audio
+ref_wav=/home/rosen/Desktop/CB-SCA-01-100.wav
 
 #. utils/parse_options.sh || exit 1;
 
@@ -207,7 +210,7 @@ fi
 if [ ${n_average} -gt 0 ]; then
     model=model.last${n_average}.avg.best
 fi
-outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
+outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})_sad
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
@@ -216,12 +219,18 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                                --snapshots ${expdir}/results/snapshot.ep.* \
                                --out ${expdir}/results/${model} \
                                --num ${n_average}
+                               --num ${n_average}
     fi
     pids=() # initialize pids
+    #ref_id="willa_cather_CB-SCA-01-135" # sad
+    #ref_id="willa_cather_CB-SCA-01-168" # json
+    #ref_json=${outdir}/${dev_set}/data.json
+    #ref_weight=${weight_json}
     for name in ${dev_set} ${eval_set}; do
     (
         [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
-        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
+        #cp ${dumpdir}/${name}/data.json ${outdir}/${name}
+        cp ${dumpdir}/${name}/data_small.json ${outdir}/${name}/data.json
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
@@ -268,4 +277,9 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished."
+fi
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: style decode+synthesis in one"
+    pids=() # initialize pids
 fi
