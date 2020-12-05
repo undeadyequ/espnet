@@ -7,13 +7,6 @@ NO_CUPY :=
 TH_VERSION := 1.4.0
 WGET := wget --tries=3
 
-<<<<<<< HEAD
-# Both Miniconda2/3 can install any Python versions
-#CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-CONDA_URL := https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh         # Mac
-# PyTorch>=1.0.0 requires gcc>=4.9 when buliding the extensions
-GCC_VERSION := $(shell gcc -dumpversion)
-=======
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
 IS_CONDA := 0
@@ -22,7 +15,6 @@ else
 IS_CONDA :=
 USE_PIP := 0
 endif
->>>>>>> upstream/master
 
 
 # Set if install binaries on CPU mode e.g. make CPU_ONLY=1
@@ -51,17 +43,6 @@ ifeq ($(shell expr $(CUDA_VERSION_WITHOUT_DOT) \>= 102), 1)
 NO_CUPY := 0
 endif
 PIP_CHAINER := chainer==$(CHAINER_VERSION)
-<<<<<<< HEAD
-else
-<<<<<<< HEAD
-CONDA_PYTORCH := pytorch=$(TH_VERSION)
-CUDA_DEPS :=
-=======
-PIP_CHAINER := chainer==$(CHAINER_VERSION) cupy-cuda$(CUDA_VERSION_WITHOUT_DOT)==$(CHAINER_VERSION)
->>>>>>> upstream/master
-endif
-=======
->>>>>>> upstream/master
 
 
 .PHONY: all clean
@@ -134,38 +115,6 @@ sph2pipe.done:
 	./installers/install_sph2pipe.sh
 	touch sph2pipe.done
 
-<<<<<<< HEAD
-ifneq ($(strip $(PYTHON)),)
-activate_python.sh:
-	test -d venv || $(PYTHON) -m venv venv
-	echo ". $(CURDIR)/venv/bin/activate" > activate_python.sh
-else
-<<<<<<< HEAD
-miniconda.sh:
-	test -f miniconda.sh || $(WGET) $(CONDA_URL) -O miniconda.sh --no-check-certificate
-venv: miniconda.sh
-	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
-	. venv/bin/activate && conda install -y setuptools -c anaconda
-	. venv/bin/activate && conda install -y pip -c anaconda
-	. venv/bin/activate && conda update -y conda
-	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
-	. venv/bin/activate && conda info -a
-espnet.done: venv
-	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
-	. venv/bin/activate && pip install -e ..
-	touch espnet.done
-=======
-activate_python.sh:
-	./installers/install_anaconda.sh "$(CONDA_ENV_NAME)" $(PYTHON_VERSION) $(CONDA)
-	echo 'if [ -z "$${PS1:-}" ]; then' > activate_python.sh.bak
-	echo '    PS1=__dummy__' >> activate_python.sh.bak
-	echo 'fi' >> activate_python.sh.bak
-	echo ". $(abspath $(CONDA))/etc/profile.d/conda.sh && conda deactivate && conda activate $(CONDA_ENV_NAME)" >> activate_python.sh.bak
-	mv activate_python.sh.bak activate_python.sh
->>>>>>> upstream/master
-endif
-=======
->>>>>>> upstream/master
 
 ifneq ($(strip $(USE_PIP)),)
 pytorch.done: activate_python.sh
@@ -178,33 +127,9 @@ pytorch.done: activate_python.sh
 	touch pytorch.done
 endif
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-warp-ctc.done: espnet.done # Manually installed
-	touch warp-ctc.done
-
-warp-transducer.done: espnet.done  # Manually installed
-	touch warp-transducer.done
-
-chainer_ctc.done: espnet.done
-	. venv/bin/activate; pip install cython
-	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
-	. venv/bin/activate; cd chainer_ctc && pip install .
-	touch chainer_ctc.done
-
-nkf.done:
-	rm -rf nkf
-	mkdir -p nkf
-	cd nkf; $(WGET) https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz --no-check-certificate
-	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
-=======
-espnet.done: pytorch.done
-	. ./activate_python.sh && pip install -e ..  # Install editable mode by default
-=======
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done
 	. ./activate_python.sh && python3 -m pip install -e ..  # Install editable mode by default
->>>>>>> upstream/master
 	touch espnet.done
 
 chainer.done: espnet.done
@@ -236,7 +161,6 @@ chainer_ctc.done: chainer.done
 
 nkf.done:
 	./installers/install_nkf.sh
->>>>>>> upstream/master
 	touch nkf.done
 
 pyopenjtalk.done: espnet.done conda_packages.done
@@ -248,13 +172,7 @@ moses.done:
 	touch moses.done
 
 mwerSegmenter.done:
-<<<<<<< HEAD
-	$(WGET) https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz --no-check-certificate
-	tar zxvf mwerSegmenter.tar.gz
-	rm mwerSegmenter.tar.gz
-=======
 	./installers/install_mwerSegmenter.sh
->>>>>>> upstream/master
 	touch mwerSegmenter.done
 
 kenlm.done: espnet.done conda_packages.done
@@ -283,21 +201,7 @@ else
 	. ./activate_python.sh; python3 check_install.py --no-cuda
 endif
 
-<<<<<<< HEAD
-pesq: PESQ/P862_annex_A_2005_CD/source/PESQ
-PESQ/P862_annex_A_2005_CD/source/PESQ: PESQ
-	cd PESQ/P862_annex_A_2005_CD/source; gcc *.c -lm -o PESQ
-PESQ: PESQ.zip
-	mkdir -p PESQ_P.862.2
-	unzip PESQ.zip -d PESQ_P.862.2
-	unzip "PESQ_P.862.2/Software/P862_annex_A_2005_CD  wav final.zip" -d PESQ_P.862.2
-	rm -rf PESQ
-	ln -s PESQ_P.862.2 PESQ
-PESQ.zip:
-	$(WGET) 'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip --no-check-certificate
-=======
 endif
->>>>>>> upstream/master
 
 
 clean: clean_extra
