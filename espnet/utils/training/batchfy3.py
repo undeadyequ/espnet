@@ -45,7 +45,7 @@ def make_batchset(
 
     return List[List[Tuple[str, dict]]]
     [
-        [("utt1", {input:[{feats:...,}, {feats:...,}], output:[{text:...,]}),
+        [("utt1": {input:[{feats:...,}, {feats:...,}], output:[{text:...,]}),
         ("utt2": ...
         ...
         ], # batch1

@@ -16,37 +16,51 @@ fi
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=100
+stop_stage=3
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 verbose=1      # verbose option
 
 # feature configuration
 fs=22050      # sampling frequency
-fmax=""       # maximum frequency
-fmin=""       # minimum frequency
+fmax=7600     # maximum frequency
+fmin=80       # minimum frequency
 n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
-cmvn=
+
 
 # dictionary related
-dict=
+dict=/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/decode/new_gst_136/char_train_no_dev_units.txt
 trans_type="char"
 
 # embedding related
 input_wav=
 
 # decoding related
-synth_model=
-decode_config=
+#synth_model=
+synth_model=/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/decode/new_gst_136/model.loss.best_newgst_e136
+cmvn=/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/decode/new_gst_136/cmvn_stft.ark
+cmvn_mel=/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/decode/new_gst_136/cmvn.ark
+
+decode_config=/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/decode/new_gst_136/decode.yaml
 decode_dir=decode
 griffin_lim_iters=64
 
 # download related
 models=ljspeech.transformer.v1
 vocoder_models=ljspeech.parallel_wavegan.v1
+
+#gst
+ref_audio=CB-SCA-01-04
+load_mel_decode=false
+use_refaudio=true
+token_weights=(3 0 0 0 0 0 0 0 0 0)
+#token_weights=
+ref_audio_dir=/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/ref_audio
+ref_audio=300000000
+
 
 help_message=$(cat <<EOF
 Usage:
@@ -125,6 +139,7 @@ set -e
 set -u
 set -o pipefail
 
+
 function download_models () {
     case "${models}" in
         "ljspeech.tacotron2.v1") share_url="https://drive.google.com/open?id=1dKzdaDpOkpx7kWZnvrvx2De7eZEdPHZs" ;;
@@ -195,11 +210,16 @@ fi
 synth_json=$(basename "${synth_model}")
 model_json="$(dirname "${synth_model}")/${synth_json%%.*}.json"
 use_speaker_embedding=$(grep use_speaker_embedding "${model_json}" | sed -e "s/.*: \(.*\),/\1/")
+
+
 if [ "${use_speaker_embedding}" = "false" ] || [ "${use_speaker_embedding}" = "0" ]; then
     use_input_wav=false
 else
     use_input_wav=true
 fi
+
+
+
 if [ -z "${input_wav}" ] && "${use_input_wav}"; then
     download_models
     input_wav=$(find "${download_dir}/${models}" -name "*.wav" | head -n 1)
@@ -231,12 +251,17 @@ if [ ! -f "${txt}" ]; then
     exit 1
 fi
 
+decode_base_dir=${decode_dir}
 base=$(basename "${txt}" .txt)
+ref_dir=${decode_dir}/ref
 decode_dir=${decode_dir}/${base}
+conf_dir=${decode_base_dir}/new_gst_136
+
 
 if [ "${stage}" -le 0 ] && [ "${stop_stage}" -ge 0 ]; then
     echo "stage 0: Data preparation"
 
+    # Create Text json
     [ -e "${decode_dir}/data" ] && rm -rf "${decode_dir}/data"
     mkdir -p "${decode_dir}/data"
     num_lines=$(wc -l < "${txt}")
@@ -247,13 +272,49 @@ if [ "${stage}" -le 0 ] && [ "${stop_stage}" -ge 0 ]; then
         echo -n "${base}_${idx} " >> "${decode_dir}/data/text"
         sed -n "${idx}"p "${txt}" >> "${decode_dir}/data/text"
     done
-
     mkdir -p "${decode_dir}/dump"
     data2json.sh --trans_type "${trans_type}" "${decode_dir}/data" "${dict}" > "${decode_dir}/dump/data.json"
+
+    # Create ref_audio json
+    [ -e "${ref_dir}/data" ] && rm -rf "${ref_dir}/data"
+    mkdir -p "${ref_dir}/data"
+    ref_audios=$(find "${ref_audio_dir}" -name *.wav | sort)
+    for ref_a in ${ref_audios}; do
+        ref_base=$(basename ${ref_a} .wav)
+        echo "${ref_base} ${ref_a}"  >> "${ref_dir}/data/wav.scp"
+        echo "${ref_base} X" >> "${ref_dir}/data/utt2spk"
+        echo "${ref_base} N" >> "${ref_dir}/data/text"
+    done
+    utils/utt2spk_to_spk2utt.pl "${ref_dir}/data/utt2spk" > "${ref_dir}/data/spk2utt"
+fi
+
+if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ] && "${use_refaudio}"; then
+    fbankdir=${ref_dir}/fbank
+    [ ! -e ${fbankdir} ] && mkdir -p ${fbankdir}
+    make_fbank.sh  \
+        --fs ${fs} \
+        --fmax "${fmax}" \
+        --fmin "${fmin}" \
+        --n_fft ${n_fft} \
+        --n_shift ${n_shift} \
+        --win_length "${win_length}" \
+        --n_mels ${n_mels} \
+        ${ref_dir}/data \
+        ${ref_dir}/log \
+        ${fbankdir}
+
+    #compute-cmvn-stats scp:${ref_dir}/data/feats.scp ${conf_dir}/cmvn.ark
+    mkdir -p "${ref_dir}/dump"
+    dump.sh --do_delta false ${ref_dir}/data/feats.scp ${cmvn_mel} ${ref_dir}/log ${ref_dir}/dump
+    data2json.sh --feat "${ref_dir}/dump/feats.scp" --trans_type "${trans_type}" "${ref_dir}/data" "${dict}" > \
+    "${ref_dir}/dump/data.json"
+
 fi
 
 if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ] && "${use_input_wav}"; then
     echo "stage 1: x-vector extraction"
+
+    utils/data/resample_data_dir.sh 22050
 
     utils/copy_data_dir.sh "${decode_dir}/data" "${decode_dir}/data2"
     sed -i -e "s;X$;${input_wav};g" "${decode_dir}/data2/wav.scp"
@@ -286,7 +347,6 @@ fi
 
 if [ "${stage}" -le 2 ] && [ "${stop_stage}" -ge 2 ]; then
     echo "stage 2: Decoding"
-
     # shellcheck disable=SC2154
     ${decode_cmd} "${decode_dir}/log/decode.log" \
         tts_decode.py \
@@ -295,12 +355,25 @@ if [ "${stage}" -le 2 ] && [ "${stop_stage}" -ge 2 ]; then
         --backend "${backend}" \
         --debugmode "${debugmode}" \
         --verbose "${verbose}" \
-        --out "${decode_dir}/outputs/feats" \
+        --out "${decode_dir}/outputs_${ref_audio}/feats" \
         --json "${decode_dir}/dump/data.json" \
-        --model "${synth_model}"
+        --model "${synth_model}" \
+        --use-refaudio "${use_refaudio}" \
+        --ref-json "${ref_dir}/dump/data.json" \
+        --load-mel-decode "${load_mel_decode}" \
+        --ref-audio "${ref_audio}"
+        #--token-weights "${token_weights}"
+        #--ref-audio "${ref_audio}"
+        #--token-weights ${token_weights}
+        #--ref-audio "${ref_audio}" \
+        #--token-weights "${token_weights}"
+        #--use-refaudio "${use_refaudio}"
+        #--token-weights "${token_weights}"
+        #--ref-embed "${synth_model}" \
+        #--ref-audio "${ref_audio}" \
 fi
 
-outdir=${decode_dir}/outputs; mkdir -p "${outdir}_denorm"
+outdir=${decode_dir}/outputs_${ref_audio}; mkdir -p "${outdir}_denorm"
 if [ "${stage}" -le 3 ] && [ "${stop_stage}" -ge 3 ]; then
     echo "stage 3: Synthesis with Griffin-Lim"
 
@@ -315,14 +388,13 @@ if [ "${stage}" -le 3 ] && [ "${stop_stage}" -ge 3 ]; then
         --n_fft "${n_fft}" \
         --n_shift "${n_shift}" \
         --win_length "${win_length}" \
-        --n_mels "${n_mels}" \
         --iters "${griffin_lim_iters}" \
         "${outdir}_denorm" \
         "${decode_dir}/log" \
-        "${decode_dir}/wav"
+        "${decode_dir}/wav_${ref_audio}"
 
     echo ""
-    echo "Synthesized wav: ${decode_dir}/wav/${base}.wav"
+    echo "Synthesized wav: ${decode_dir}/wav_${ref_audio}/${base}.wav"
     echo ""
     echo "Finished"
 fi
@@ -336,7 +408,7 @@ if [ "${stage}" -le 4 ] && [ "${stop_stage}" -ge 4 ]; then
         exit 1
     fi
     download_vocoder_models
-    dst_dir=${decode_dir}/wav_wnv
+    dst_dir=${decode_dir}/wav_wnv_${ref_audio}
 
     # This is hardcoded for now.
     if [[ "${vocoder_models}" == *".mol."* ]]; then
@@ -375,7 +447,7 @@ if [ "${stage}" -le 4 ] && [ "${stop_stage}" -ge 4 ]; then
             "${dst_dir}"
     fi
     echo ""
-    echo "Synthesized wav: ${decode_dir}/wav_wnv/${base}.wav"
+    echo "Synthesized wav: ${decode_dir}/wav_wnv_${ref_audio}/${base}.wav"
     echo ""
     echo "Finished"
 fi

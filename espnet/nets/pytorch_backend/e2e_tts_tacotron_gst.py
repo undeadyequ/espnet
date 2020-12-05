@@ -415,8 +415,9 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
         self.spk_embed_dim = args.spk_embed_dim
         self.embed_dim = args.embed_dim
         # style related
-        self.ref_embed_dim = args.ref_embed_dim
+        self.ref_embed_dim = args.ref_embed_dim      # not used in new gst
         self.style_embed_dim = args.style_embed_dim
+
 
         self.cumulate_att_w = args.cumulate_att_w
         self.reduction_factor = args.reduction_factor
@@ -629,7 +630,7 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def inference(self, x, refer_mel, inference_args, spemb=None, style_emb=None, *args, **kwargs):
+    def inference(self, x, refer_mel=None, inference_args=None, spemb=None, style_emb=None, token_weights=None, *args, **kwargs):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -658,8 +659,26 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
 
         # inference
         h = self.enc.inference(x)      # [T_x, x_dim]
-        style = self.gst.inference(refer_mel)  # [1, style_embed]
-        style = style.expand_as(h)        # [T_x, x_dim]
+
+        ## style_emb from diff style input
+        if refer_mel is not None:
+            print("refer mel dim:", refer_mel.size(), refer_mel[0], refer_mel.type())
+            refer_mel = refer_mel.unsqueeze(0)
+            style = self.gst(refer_mel)  # [1, style_embed]
+            style = style.expand_as(h)  # [T_x, x_dim]
+        elif style_emb is not None:
+            style = style_emb.expand_as(h)
+        elif token_weights is not None:
+            print(token_weights)
+            states = self.state_dict()
+            tokens = states["gst.stl.gst_embs"]               # (token_n, token_dim / head)       (10, 64)
+            tokens_w = states["gst.stl.mha.linear_v.weight"]   # (token_dim, token_dim / head)    (512, 64)
+            tokens_b = states["gst.stl.mha.linear_v.bias"]   # (token_dim, )                      (512,)
+            tokens_lineared = F.linear(tokens, tokens_w, tokens_b)   # (token_n, token_dim)       (10, 512)
+            style = tokens_lineared * torch.FloatTensor(token_weights).view(len(token_weights), 1) #(10, 512)
+            style = torch.sum(style, dim=0).expand_as(h)
+        else:
+            raise IOError("only ref_mel, style_emb, token_weights, 3 types style input allowed")
 
         h = h + style
         if self.spk_embed_dim is not None:
@@ -667,6 +686,7 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
             h = torch.cat([h, spemb], dim=-1)
         if self.style_embed_dim is not None:
             pass
+
 
         outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio,
                                                  use_att_constraint=use_att_constraint,
@@ -732,3 +752,17 @@ class Tacotron2_GST(TTSInterface, torch.nn.Module):
         if self.use_cbhg:
             plot_keys += ['cbhg_l1_loss', 'cbhg_mse_loss']
         return plot_keys
+
+def _compute_style_from_tokens(tokens, v_weights, token_scale):
+    """
+    compute style from tokens
+    :param tokens:
+    :param v_weights: Value weights multiply keys
+        keys = tanh(tokens)   # ??? Why ???
+        Value =  keys * v_weights
+    :param token_scale:
+    :return:
+    """
+    out = 0
+    pass
+    return out

@@ -9,8 +9,8 @@
 
 # general configuration
 backend=pytorch
-stage=-1
-stop_stage=100
+stage=5
+stop_stage=5
 ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32        # number of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -47,7 +47,7 @@ focus_rate_thres=0.65  # for phn taco2 around 0.65, phn transformer around 0.9
 
 # decoding related
 model=model.loss.best
-n_average=1 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
+n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 
 # objective evaluation related
@@ -56,7 +56,7 @@ eval_tts_model=true                            # true: evaluate tts model, false
 wer=true                                       # true: evaluate CER & WER, false: evaluate only CER
 
 # root directory of db
-db_root=downloads
+db_root=/home/Data
 
 # exp tag
 tag="" # tag for managing experiments.

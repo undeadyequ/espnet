@@ -90,5 +90,5 @@ if __name__ == '__main__':
     wav_tokens_dir = "/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/decode/syn_list/wav_tokens"
     wav_list = os.listdir(wav_tokens_dir)
     wav_list = [os.path.join(wav_tokens_dir, w) for w in wav_list]
-    #show_pitch(wav_list)
+    show_pitch(wav_list)
     show_energy(wav_list)

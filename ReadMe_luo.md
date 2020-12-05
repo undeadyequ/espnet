@@ -275,6 +275,18 @@ stage 6: Objective Evaluation
 
 
 ## Install
-1. Install Kaldi and softlink if from espnet
-2. Install Conda env
-3. 
+- install system level package, cmake, sox, sndfile, ffmpeg, flac
+
+- Install Kaldi and set soft link inside of espnet
+    - ln -s ../../tts/espnet/tools/kaldi
+- Install Espnet
+    - Set cuda
+        - ./setup_cuda_env.sh /usr/local/cuda
+    - set Conda env
+        - ./setup_anaconda.sh ./venv
+        - install numpy, configargparse
+    - Make
+        - cd ../tools
+        - make   # install python library
+        - 
+    

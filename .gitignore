@@ -39,6 +39,8 @@ egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
+egs*/*/*/decode
+egs*/*/*/ref_audio
 
 # tools related
 tools/bin
@@ -63,3 +65,7 @@ tools/hts_engine_API*
 tools/open_jtalk*
 tools/pyopenjtalk*
 tools/activate_python.sh
+tools/sctk*
+tools/sph*
+tools/vis
+

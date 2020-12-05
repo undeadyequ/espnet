@@ -558,7 +558,7 @@ def decode(args):
     """Decode with E2E-TTS model."""
     set_deterministic_pytorch(args)
     # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf) # get from model.json
 
     # show arguments
     for key in sorted(vars(args).keys()):
@@ -583,14 +583,20 @@ def decode(args):
     with open(args.json, "rb") as f:
         js = json.load(f)["utts"]
 
+    # read reference json and id
+    #ref_id="willa_cather_CB-SCA-01-135" # sad
+    #ref_id="willa_cather_CB-SCA-01-168" # json
+    #ref_json="/home/rosen/Project/espnet/egs/blizzard13/tts2_gst/exp/char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+local+gst/outputs_model.loss.best_newgst_decode_sad/char_dev/data.json"
+
     # check directory
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
 
+    #print("load_mel_decode;", args.load_mel_decode)
     load_inputs_and_targets = LoadInputsAndTargets(
         mode="tts",
-        load_input=True, # or False??
+        load_input=True if args.load_mel_decode=="true" else False,  # or False??
         sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf
@@ -598,80 +604,6 @@ def decode(args):
         else args.preprocess_conf,
         preprocess_args={"train": False},  # Switch the mode of preprocessing
     )
-
-    # define function for plot prob and att_ws
-    def _plot_and_save(array, figname, figsize=(6, 4), dpi=150):
-        import matplotlib.pyplot as plt
-
-        shape = array.shape
-        if len(shape) == 1:
-            # for eos probability
-            plt.figure(figsize=figsize, dpi=dpi)
-            plt.plot(array)
-            plt.xlabel("Frame")
-            plt.ylabel("Probability")
-            plt.ylim([0, 1])
-        elif len(shape) == 2:
-            # for tacotron 2 attention weights, whose shape is (out_length, in_length)
-            plt.figure(figsize=figsize, dpi=dpi)
-            plt.imshow(array, aspect="auto")
-            plt.xlabel("Input")
-            plt.ylabel("Output")
-        elif len(shape) == 4:
-            # for transformer attention weights,
-            # whose shape is (#leyers, #heads, out_length, in_length)
-            plt.figure(figsize=(figsize[0] * shape[0], figsize[1] * shape[1]), dpi=dpi)
-            for idx1, xs in enumerate(array):
-                for idx2, x in enumerate(xs, 1):
-                    plt.subplot(shape[0], shape[1], idx1 * shape[1] + idx2)
-                    plt.imshow(x, aspect="auto")
-                    plt.xlabel("Input")
-                    plt.ylabel("Output")
-        else:
-            raise NotImplementedError("Support only from 1D to 4D array.")
-        plt.tight_layout()
-        if not os.path.exists(os.path.dirname(figname)):
-            # NOTE: exist_ok = True is needed for parallel process decoding
-            os.makedirs(os.path.dirname(figname), exist_ok=True)
-        plt.savefig(figname)
-        plt.close()
-
-    # define function to calculate focus rate
-    # (see section 3.3 in https://arxiv.org/abs/1905.09263)
-    def _calculate_focus_rete(att_ws):
-        if att_ws is None:
-            # fastspeech case -> None
-            return 1.0
-        elif len(att_ws.shape) == 2:
-            # tacotron 2 case -> (L, T)
-            return float(att_ws.max(dim=-1)[0].mean())
-        elif len(att_ws.shape) == 4:
-            # transformer case -> (#layers, #heads, L, T)
-            return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
-        else:
-            raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
-
-    # define function to convert attention to duration
-    def _convert_att_to_duration(att_ws):
-        if len(att_ws.shape) == 2:
-            # tacotron 2 case -> (L, T)
-            pass
-        elif len(att_ws.shape) == 4:
-            # transformer case -> (#layers, #heads, L, T)
-            # get the most diagonal head according to focus rate
-            att_ws = torch.cat(
-                [att_w for att_w in att_ws], dim=0
-            )  # (#heads * #layers, L, T)
-            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1)  # (#heads * #layers,)
-            diagonal_head_idx = diagonal_scores.argmax()
-            att_ws = att_ws[diagonal_head_idx]  # (L, T)
-        else:
-            raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
-        # calculate duration from 2d attention weight
-        durations = torch.stack(
-            [att_ws.argmax(-1).eq(i).sum() for i in range(att_ws.shape[1])]
-        )
-        return durations.view(-1, 1).float()
 
     # define writer instances
     feat_writer = kaldiio.WriteHelper("ark,scp:{o}.ark,{o}.scp".format(o=args.out))
@@ -689,19 +621,42 @@ def decode(args):
         # setup inputs
         batch = [(utt_id, js[utt_id])]
         data = load_inputs_and_targets(batch)
-        x = torch.LongTensor(data[0][0]).to(device)
-        ys = torch.FloatTensor(data[1][0]).to(device)
+        x = torch.LongTensor(data[0][0]).to(device)   # input 1st
+        #ys = torch.FloatTensor(data_ref[1][0]).to(device)
+
         spemb = None
         if train_args.use_speaker_embedding:
-            spemb = torch.FloatTensor(data[1][0]).to(device)
+            spemb = torch.FloatTensor(data[1][0]).to(device)  # BIG PROBLEM???
 
         # decode and write
         start_time = time.time()
         if train_args.model_module.split(":")[1] == "Tacotron2_GST":
-            outs, probs, att_ws = model.inference(x, ys, args, spemb=spemb)
-            x_b = torch.unsqueeze(x, 0)
-            ilens = torch.tensor(len(x))
-            #att_ws = model.calculate_all_attentions(x_b, ilens, ys, spembs=spemb)  # for test
+            if args.ref_audio is None and args.token_weights is None:
+                ref_embed = torch.FloatTensor(data[1][0]).to(device)  # # use gd as ref_audio
+                outs, probs, att_ws = model.inference(x, ref_embed, args, spemb=spemb)
+            elif args.ref_audio is not None:
+                with open(args.ref_json, "rb") as f:
+                    ref_js = json.load(f)["utts"]
+                data_ref_json = ref_js[args.ref_audio]
+                load_inputs = LoadInputsAndTargets(
+                    mode="tts",
+                    load_input=True,
+                    sort_in_input_length=False,
+                    use_speaker_embedding=train_args.use_speaker_embedding,
+                    preprocess_conf=train_args.preprocess_conf
+                    if args.preprocess_conf is None
+                    else args.preprocess_conf,
+                    preprocess_args={"train": False},  # Switch the mode of preprocessing
+                )
+                ref_data = load_inputs([(args.ref_audio, data_ref_json)])
+                refer_mel = torch.FloatTensor(ref_data[1][0]).to(device)
+                outs, probs, att_ws = model.inference(x, refer_mel=refer_mel, inference_args=args,
+                                                      token_weights=None, spemb=spemb)
+            elif args.token_weights is not None:
+                #print("weights type:", type(args.token_weights))
+                #print(args.token_weights)
+                token_weights = [0,0,0,0,0,0,0,0,0,0.3]
+                outs, probs, att_ws = model.inference(x, inference_args=args, token_weights=token_weights, spemb=spemb)
         else:
             outs, probs, att_ws = model.inference(x, args, spemb=spemb)
         logging.info(
@@ -740,3 +695,80 @@ def decode(args):
         dur_writer.close()
     if args.save_focus_rates:
         fr_writer.close()
+
+
+# define function for plot prob and att_ws
+def _plot_and_save(array, figname, figsize=(6, 4), dpi=150):
+    import matplotlib.pyplot as plt
+
+    shape = array.shape
+    if len(shape) == 1:
+        # for eos probability
+        plt.figure(figsize=figsize, dpi=dpi)
+        plt.plot(array)
+        plt.xlabel("Frame")
+        plt.ylabel("Probability")
+        plt.ylim([0, 1])
+    elif len(shape) == 2:
+        # for tacotron 2 attention weights, whose shape is (out_length, in_length)
+        plt.figure(figsize=figsize, dpi=dpi)
+        plt.imshow(array, aspect="auto")
+        plt.xlabel("Input")
+        plt.ylabel("Output")
+    elif len(shape) == 4:
+        # for transformer attention weights,
+        # whose shape is (#leyers, #heads, out_length, in_length)
+        plt.figure(figsize=(figsize[0] * shape[0], figsize[1] * shape[1]), dpi=dpi)
+        for idx1, xs in enumerate(array):
+            for idx2, x in enumerate(xs, 1):
+                plt.subplot(shape[0], shape[1], idx1 * shape[1] + idx2)
+                plt.imshow(x, aspect="auto")
+                plt.xlabel("Input")
+                plt.ylabel("Output")
+    else:
+        raise NotImplementedError("Support only from 1D to 4D array.")
+    plt.tight_layout()
+    if not os.path.exists(os.path.dirname(figname)):
+        # NOTE: exist_ok = True is needed for parallel process decoding
+        os.makedirs(os.path.dirname(figname), exist_ok=True)
+    plt.savefig(figname)
+    plt.close()
+
+
+# define function to calculate focus rate
+# (see section 3.3 in https://arxiv.org/abs/1905.09263)
+def _calculate_focus_rete(att_ws):
+    if att_ws is None:
+        # fastspeech case -> None
+        return 1.0
+    elif len(att_ws.shape) == 2:
+        # tacotron 2 case -> (L, T)
+        return float(att_ws.max(dim=-1)[0].mean())
+    elif len(att_ws.shape) == 4:
+        # transformer case -> (#layers, #heads, L, T)
+        return float(att_ws.max(dim=-1)[0].mean(dim=-1).max())
+    else:
+        raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
+
+
+# define function to convert attention to duration
+def _convert_att_to_duration(att_ws):
+    if len(att_ws.shape) == 2:
+        # tacotron 2 case -> (L, T)
+        pass
+    elif len(att_ws.shape) == 4:
+        # transformer case -> (#layers, #heads, L, T)
+        # get the most diagonal head according to focus rate
+        att_ws = torch.cat(
+            [att_w for att_w in att_ws], dim=0
+        )  # (#heads * #layers, L, T)
+        diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1)  # (#heads * #layers,)
+        diagonal_head_idx = diagonal_scores.argmax()
+        att_ws = att_ws[diagonal_head_idx]  # (L, T)
+    else:
+        raise ValueError("att_ws should be 2 or 4 dimensional tensor.")
+    # calculate duration from 2d attention weight
+    durations = torch.stack(
+        [att_ws.argmax(-1).eq(i).sum() for i in range(att_ws.shape[1])]
+    )
+    return durations.view(-1, 1).float()

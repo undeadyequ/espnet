@@ -93,6 +93,7 @@ def get_parser():
         default=3,
         help="Forward window size in the attention constraint",
     )
+    # fastspeech
     parser.add_argument(
         "--fastspeech-alpha",
         type=float,
@@ -111,6 +112,36 @@ def get_parser():
         default=False,
         type=strtobool,
         help="Whether to save focus rates of attentions",
+    )
+
+    # gst
+    parser.add_argument(
+        "--ref-json",
+        default=None,
+        type=str,
+        help="ref json"
+    )
+    parser.add_argument(
+        "--token-weights",
+        default=None,
+        type=list,
+        help="token-weights"
+    )
+    parser.add_argument(
+        "--use-refaudio",
+        default=False,
+        help="use refaudio or not"
+    )
+    parser.add_argument(
+        "--ref-audio",
+        type=str,
+        help="use refaudio or not"
+    )
+    parser.add_argument(
+        "--load-mel-decode",
+        default="true",
+        type=str,
+        help=""
     )
     return parser
 
