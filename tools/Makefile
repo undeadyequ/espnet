@@ -29,8 +29,12 @@ ifeq ($(strip $(CPU_ONLY)),)
 # Derive CUDA version from nvcc
 CUDA_VERSION = $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
 CUDA_VERSION_WITHOUT_DOT = $(strip $(subst .,,$(CUDA_VERSION)))
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
 PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cu$(CUDA_VERSION_WITHOUT_DOT)/torch_stable.html
+ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),80)
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cuda$(CUDA_VERSION_WITHOUT_DOT)
+else
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
+endif
 
 else
 CONDA_PYTORCH := pytorch=$(TH_VERSION) cpuonly
@@ -55,7 +59,7 @@ else
 python: activate_python.sh warp-ctc.done warp-transducer.done espnet.done pytorch.done
 endif
 
-extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done
+extra: nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || { echo -e "Error: Put Kaldi here!\n    $$ ln -s <kaldi-root> kaldi"; exit 1; }
@@ -98,7 +102,7 @@ sox.done: activate_python.sh
 	. ./activate_python.sh && { command -v sox || conda install -y sox -c conda-forge; }
 	touch sox.done
 sndfile.done: activate_python.sh
-	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile -c conda-forge; }
+	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile=1.0.28 -c conda-forge; }
 	touch sndfile.done
 ifneq ($(strip $(IS_CONDA)),)
 conda_packages.done: cmake.done flac.done ffmpeg.done sox.done sndfile.done
@@ -129,7 +133,7 @@ endif
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done
-	. ./activate_python.sh && python3 -m pip install -e ..  # Install editable mode by default
+	. ./activate_python.sh && python3 -m pip install -e "..[recipe]"  # Install editable mode by default
 	touch espnet.done
 
 chainer.done: espnet.done
@@ -152,8 +156,14 @@ warp-ctc.done: pytorch.done conda_packages.done
 	touch warp-ctc.done
 
 warp-transducer.done: pytorch.done conda_packages.done
+ifeq ($(strip $(CPU_ONLY)),)
+	. ./activate_python.sh && ./installers/install_warp-transducer.sh
+	. ./activate_python.sh &&  ./installers/install_warp-rnnt.sh $(CUDA_VERSION)
+	touch warp-transducer.done
+else
 	. ./activate_python.sh && ./installers/install_warp-transducer.sh
 	touch warp-transducer.done
+endif
 
 chainer_ctc.done: chainer.done
 	. ./activate_python.sh && ./installers/install_chainer_ctc.sh
@@ -183,6 +193,13 @@ pesq: PESQ/P862_annex_A_2005_CD/source/PESQ
 PESQ/P862_annex_A_2005_CD/source/PESQ:
 	./installers/install_pesq.sh
 
+py3mmseg.done: espnet.done
+	. ./activate_python.sh && ./installers/install_py3mmseg.sh
+	touch py3mmseg.done
+
+beamformit.done:
+	./installers/install_beamformit.sh
+	touch beamformit.done
 
 check_install: python
 ifeq ($(strip $(CPU_ONLY)),)
@@ -205,12 +222,12 @@ endif
 
 
 clean: clean_extra
-	rm -rf warp-ctc warp-transducer chainer_ctc
+	rm -rf warp-ctc warp-transducer warp-rnnt chainer_ctc
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf warp-ctc warp-transducer chainer_ctc
+	rm -rf warp-ctc warp-transducer warp-rnnt chainer_ctc
 	rm -f warp-ctc.done chainer_ctc.done espnet.done chainer.done pytorch.done warp-transducer.done
 	find . -iname "*.pyc" -delete
 

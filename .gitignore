@@ -69,3 +69,4 @@ tools/sctk*
 tools/sph*
 tools/vis
 tools/Makefile*
+tools/sph2pipe*
