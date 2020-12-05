@@ -68,4 +68,4 @@ tools/activate_python.sh
 tools/sctk*
 tools/sph*
 tools/vis
-
+tools/Makefile*
