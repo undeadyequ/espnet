@@ -162,7 +162,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             exp/make_stft/${name} \
             ${stftdir}
 
-        utils/fix_data_dir.sh data/${name}_stft
+        utils/svc= SVC(C=0.01, gamma=0.1, kernel='linear', class_weight=class_weights, verbose=True, random_state=42)
+.sh data/${name}_stft
     done
 
     # compute global CMVN

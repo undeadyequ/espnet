@@ -5,6 +5,10 @@ date:   2019-7-17 12:52:48 +0900
 categories: jekyll update
 ---
 
+### Pretrained model list
+
+![list](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv)
+
 ### Tabel
 
     - TTS model
@@ -115,138 +119,6 @@ data_json = {
       }
   - Make
 
-
-### Project architecture
-- espnet
-  - tools
-    - kaldi
-  - espnet
-    - bin
-      - **tts_train.py** (Parameter settings)
-      - lm_train.py
-      - asr_train.py
-    - tts
-      - pytorch_backend
-        - **tts.py**     (Train process)
-    - nets (All dl model architecture)
-      - pytorch_backend
-        - tacotron2
-          - cbhg.py
-          - decoder.py
-          - encoder.py
-        - transformer
-          - ...
-        - **e2e_tts_tacotron2.py**
-        - wavenet.py
-    - transform(wav data transform)
-        - spectrogram
-  - egs (example by data)
-    - ljspeech
-      - tts1 (Algorithm different)
-        - conf (Hyper-param file)
-          - decode.yml
-          - gpu.yml
-          - ...
-        - util
-          -
-        - local (5_step, )
-          - data_download.sh
-          - data_pre.sh
-          -
-        - run.sh (Hardware, Hyper-param, 5_Step(download, prepare, train, decode??, synthesis))
-        - cmd.sh
-        - path.sh
-      - tts2
-        - ?
-    - blizzard
-  - utils
-    - dump.sh
-    - convert_fbank.sh
-  - tools(kaldi file)
-    - reming
-
-![architect](architect.png)
-
-### Process flow
-
-stage-1: Data Download
-
-stage 0: Data preparation
-
-    -
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/${trans_type}_train ${trans_type}
-    utils/validate_data_dir.sh --no-feats data/${trans_type}_train
-
-stage 1: Feature Generation
-
-    - Generate the fbank features; by default 80-dimensional fbanks on each frame
-    make_fbank.sh ...
-
-    - make a dev set
-    utils/subset_data_dir.sh --last data/${trans_type}_train 500 data/${trans_type}_deveval
-    ..
-
-    - compute statistics for global mean-variance normalization
-    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-    ...
-
-    - dump features for training
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${trans_type}_train ${feat_tr_dir}
-    ...
-
-    - Task dependent. You have to check non-linguistic symbols used in the corpus.
-
-stage 2: Dictionary and Json Data Preparation
-
-    - make json labels
-
-
-stage 3: Text-to-speech model training
-
-    - setup feature and duration for fastspeech knowledge distillation training
-    local/setup_knowledge_dist.sh ...
-
-    - Training
-    tts_train.py \
-       --backend ${backend} \
-       --ngpu ${ngpu} \
-       --minibatches ${N} \
-       --outdir ${expdir}/results \
-       --tensorboard-dir tensorboard/${expname} \
-       --verbose ${verbose} \
-       --seed ${seed} \
-       --resume ${resume} \
-       --train-json ${tr_json} \
-       --valid-json ${dt_json} \
-       --config ${train_config}
-    Example
-       --backend pytorch --ngpu 1 --minibatches 0 --outdir ../../egs/blizzard13/tts2_gst/exp/results_test --tensorboard-dir ../../egs/blizzard13/tts2_gst/tensorboard_ --verbose 1 --seed 1 --train-json  /home/Data/program_data/espnet2/dump/char_train_no_dev/data.json --valid-json /home/Data/program_data/espnet2/dump/char_dev/data.json --config ../../egs/blizzard13/tts2_gst/conf/train_pytorch_tacotron2+cbhg+gst.yaml
-
-    
-stage 4: Decoding
-
-    - Decoding text to log Mel/Linear spec, att_ws, and att_probs as well
-        1. Select best model or average several checkpoint
-            - average_checkpoints.py
-
-        2. Got 3 result above
-            - tts.decode()   [see Detailed]
-
-stage 5: Synthesis
-
-    - Synthesize Wav file from Mel/Linear
-        1. apply-cmvn.sh
-            - apply cepstral mean and (optionally) variance normalization ???
-
-        2. convert_fbank.sh(convert_fbank_to_wav.py) convert logmel_spc to linearspc
-            - if mel, then convert to Linear by SVD
-            - if lin, convert to wav by grifflin
-
-stage 6: Objective Evaluation
-
-    - evaluate cer
-    local/ob_eval/evaluate_cer.sh
 
 
 

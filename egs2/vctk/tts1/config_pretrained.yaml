@@ -1,0 +1,217 @@
+accum_grad: 1
+allow_variable_data_keys: false
+batch_bins: 3750000
+batch_size: 20
+batch_type: numel
+best_model_criterion:
+- - valid
+  - loss
+  - min
+- - train
+  - loss
+  - min
+bpemodel: null
+chunk_length: 500
+chunk_shift_ratio: 0.5
+cleaner: tacotron
+collect_stats: false
+config: conf/tuning/train_gst_tacotron2.yaml
+cudnn_benchmark: false
+cudnn_deterministic: true
+cudnn_enabled: true
+dist_backend: nccl
+dist_init_method: env://
+dist_launcher: null
+dist_master_addr: null
+dist_master_port: null
+dist_rank: null
+dist_world_size: null
+distributed: false
+dry_run: false
+early_stopping_criterion:
+- valid
+- loss
+- min
+feats_extract: fbank
+feats_extract_conf:
+  fmax: 7600
+  fmin: 80
+  fs: 24000
+  hop_length: 300
+  n_fft: 2048
+  n_mels: 80
+  win_length: 1200
+fold_length:
+- 150
+- 240000
+g2p: g2p_en_no_space
+grad_clip: 1.0
+grad_noise: false
+iterator_type: sequence
+keep_nbest_models: 5
+local_rank: 0
+log_interval: null
+log_level: INFO
+max_cache_size: 0.0
+max_epoch: 200
+model_conf: {}
+multiple_iterator: false
+multiprocessing_distributed: false
+ngpu: 1
+no_forward_run: false
+non_linguistic_symbols: null
+normalize: global_mvn
+normalize_conf:
+  stats_file: /home/rosen/Project/espnet/tools/venv/envs/espnet/lib/python3.8/site-packages/espnet_model_zoo/d51358bee8acf0087b09afface2eb09c/exp/tts_stats_raw_phn_tacotron_g2p_en_no_space/train/feats_stats.npz
+num_att_plot: 3
+num_cache_chunks: 1024
+num_iters_per_epoch: null
+num_workers: 1
+odim: null
+optim: adam
+optim_conf:
+  eps: 1.0e-06
+  lr: 0.001
+  weight_decay: 0.0
+output_dir: exp/tts_train_gst_tacotron2_raw_phn_tacotron_g2p_en_no_space
+patience: null
+pretrain_key: []
+pretrain_path: []
+print_config: false
+required:
+- output_dir
+- token_list
+resume: true
+scheduler: null
+scheduler_conf: {}
+seed: 0
+sort_batch: descending
+sort_in_batch: descending
+token_list:
+- <blank>
+- <unk>
+- OY0
+- ''''
+- OY2
+- ER2
+- UH0
+- '!'
+- EY0
+- AW0
+- AA0
+- UH2
+- UW2
+- AY0
+- AO2
+- AO0
+- AE2
+- AH2
+- AE0
+- AA2
+- IY2
+- EH0
+- AW2
+- ZH
+- AY2
+- OY1
+- IH2
+- UW0
+- EY2
+- EH2
+- OW2
+- OW0
+- '?'
+- CH
+- ER1
+- TH
+- UH1
+- AW1
+- JH
+- Y
+- SH
+- NG
+- ','
+- G
+- OW1
+- AO1
+- IY0
+- UW1
+- EY1
+- AY1
+- HH
+- F
+- ER0
+- V
+- P
+- B
+- AH1
+- IY1
+- IH0
+- AA1
+- EH1
+- AE1
+- M
+- W
+- K
+- DH
+- Z
+- .
+- L
+- D
+- IH1
+- R
+- S
+- N
+- T
+- AH0
+- <sos/eos>
+token_type: phn
+train_data_path_and_name_and_type:
+- - dump/raw/tr_no_dev/text
+  - text
+  - text
+- - dump/raw/tr_no_dev/wav.scp
+  - speech
+  - sound
+train_dtype: float32
+train_shape_file:
+
+
+
+
+  guided_attn_loss_lambda: 1.0
+  guided_attn_loss_sigma: 0.4
+  output_activation: null
+  postnet_chans: 512
+  postnet_filts: 5
+  postnet_layers: 5
+  prenet_layers: 2
+  prenet_units: 256
+  reduction_factor: 1
+  spk_embed_dim: null
+  use_batch_norm: true
+  use_concate: true
+  use_gst: true
+  use_guided_attn_loss: true
+  use_masking: true
+  use_residual: false
+  zoneout_rate: 0.1
+use_preprocessor: true
+val_scheduler_criterion:
+- valid
+- loss
+valid_batch_bins: null
+valid_batch_size: null
+valid_batch_type: null
+valid_data_path_and_name_and_type:
+- - dump/raw/dev/text
+  - text
+  - text
+- - dump/raw/dev/wav.scp
+  - speech
+  - sound
+valid_max_cache_size: null
+valid_shape_file:
+- exp/tts_stats_raw_phn_tacotron_g2p_en_no_space/valid/text_shape.phn
+- exp/tts_stats_raw_phn_tacotron_g2p_en_no_space/valid/speech_shape
+write_collected_feats: false

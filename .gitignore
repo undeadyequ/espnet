@@ -26,6 +26,8 @@ test_spm.model
 .vscode*
 *.vim
 *.swp
+exp*/*
+downloads/*
 
 # recipe related
 egs*/*/*/data*
@@ -33,7 +35,7 @@ egs*/*/*/db
 egs*/*/*/downloads
 egs*/*/*/dump
 egs*/*/*/enhan
-egs*/*/*/exp
+egs*/*/*/exp*
 egs*/*/*/fbank
 egs*/*/*/mfcc
 egs*/*/*/stft
@@ -41,6 +43,8 @@ egs*/*/*/tensorboard
 egs*/*/*/wav*
 egs*/*/*/decode
 egs*/*/*/ref_audio
+egs*/*/*/*.json
+egs/blizzard13/tts2_gst/train_data.json
 
 # tools related
 tools/bin

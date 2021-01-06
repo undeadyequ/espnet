@@ -180,7 +180,6 @@ class ReferenceEncoder(torch.nn.Module):
         """
         batch_size = speech.size(0)
         xs = speech.unsqueeze(1)  # (B, 1, Lmax, idim)
-        print("xs:", xs.type(), xs.size())
         hs = self.convs(xs).transpose(1, 2)  # (B, Lmax', conv_out_chans, idim')
         # NOTE(kan-bayashi): We need to care the length?
         time_length = hs.size(1)

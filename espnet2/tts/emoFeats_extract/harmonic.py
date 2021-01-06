@@ -1,3 +1,2 @@
-
-class homony():
+class Harmonic():
     pass
