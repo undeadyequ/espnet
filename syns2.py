@@ -5,8 +5,9 @@ from librosa.feature import melspectrogram, mfcc
 import librosa
 import os
 
-# provided pre-trained model
 
+## syn txt file
+# provided pre-trained model
 # own model
 
 

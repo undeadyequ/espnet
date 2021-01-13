@@ -1,5 +1,7 @@
 # download pretrained model
 
+## real time synthesis
+
 import os
 from scipy.io.wavfile import write
 if not os.path.exists("downloads/en/tacotron2"):

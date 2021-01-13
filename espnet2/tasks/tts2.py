@@ -21,16 +21,17 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.espnet_model import ESPnetTTSModel
-from espnet2.tts.espnet_model2 import ESPnetTTSModel2
+from espnet2.tts.espnet_emo_contrl_model import EspnetEmoTTSModel
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
-from espnet2.tts.controllabelEmoTTS import ContrlemoTTS
+from espnet2.tts.controllabelEmoTTS import
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.feats_extract.emofeats_extract import Emofeats_extract
+from espnet2.tts.ser.ser_model import SER_XGB
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -49,6 +50,12 @@ emo_feats_extractor_choices = ClassChoices(
     "emofeats_extract",
     classes=dict(librosa=Emofeats_extract)
 )
+
+emo_classifier_choices = ClassChoices(
+    "emoClassifier",
+    classes=dict(xgboost=SER_XGB)
+)
+
 
 pitch_extractor_choices = ClassChoices(
     "pitch_extract",
@@ -295,10 +302,12 @@ class TTSTask(AbsTask):
         if args.tts == "emocontrl":
             emofeats_extract_class = emo_feats_extractor_choices.get_class(args.emofeats_extract)
             emofeats_extract = emofeats_extract_class(**args.emofeats_extract_conf)
+            emo_classifier_class = emo_classifier_choices.get_class(args.emoclassifier)
         else:
             args.emofeats_extract = None
             args.emofeats_extract_conf = None
             emofeats_extract = None
+            emo_classifier_class = None
 
 
         # 2. Normalization layer
@@ -311,6 +320,7 @@ class TTSTask(AbsTask):
         if args.tts == "emocontrl":
             emofeats_normalize_class = normalize_choices.get_class(args.emofeats_normalize)
             emofeats_normalize = emofeats_normalize_class(**args.emofeats_normalize_conf)
+
         else:
             emofeats_normalize = None
 
@@ -360,16 +370,11 @@ class TTSTask(AbsTask):
 
         # 5. Build model
         if args.tts == "emocontrl":
-            model = ESPnetTTSModel2(
-                feats_extract=feats_extract,
-                pitch_extract=pitch_extract,
-                emofeats_extract=emofeats_extract,
-                energy_extract=energy_extract,
-                normalize=normalize,
-                emofeats_normalize=emofeats_normalize,
-                pitch_normalize=pitch_normalize,
-                energy_normalize=energy_normalize,
+            model = EspnetEmoTTSModel(
+                mel_extract=feats_extract,
+                emo_feats_extract=emofeats_extract,
                 tts=tts,
+                pretrained_SER=emo_classifier_class,
                 **args.model_conf,
             )
         else:
