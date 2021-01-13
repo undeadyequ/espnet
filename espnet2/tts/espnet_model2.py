@@ -23,10 +23,17 @@ else:
 
 
 class ESPnetTTSModel2(AbsESPnetModel):
+    """
+    Used for controllable emotional TTS model
+    feats_extract:
+    emofeats_extract:
+
+    """
     def __init__(
         self,
         feats_extract: Optional[AbsFeatsExtract],
         emofeats_extract: Optional[AbsFeatsExtract],
+        ser_discriminator: Optional,
         pitch_extract: Optional[AbsFeatsExtract],
         energy_extract: Optional[AbsFeatsExtract],
         normalize: Optional[AbsNormalize and InversibleInterface],

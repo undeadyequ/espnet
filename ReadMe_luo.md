@@ -161,4 +161,35 @@ data_json = {
         - cd ../tools
         - make   # install python library
         - 
+
+
+
+## Energy, pitch, harmonic extraction
+    - Extract feature token-wise or word-wise
+    - Duration: Tokenized duration in each phoneme(or word)
+        - Example (call)
+            0:0:23 ~ 0:0:26 : KY
+            0:0:26 ~ 0:0:29 : Al
+           
+    - Speech_lenght: Extract specific lenght
+
+## Fastspeech 
+    - Teacherforce of Energy and Pitch in inference 
+
+## Fastspeech2
+    - 
+ 
+
+## Mel-bank computing
+   - Firstly comput stft from wav by librosa.stft
+   - then multiply mel with log to compute mel_bank
+   - make_fbank.sh => compute-fbank-feats.py => logmelspectrogram => librosa.stft 
+
+## Segmentation info of audio
+    - Used in vctk
+ 
+## 
+    
+## Python skill
+    - Argments Type
     

@@ -1818,6 +1818,7 @@ class AbsTask(ABC):
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)
         model = cls.build_model(args)
+        print(model)
         if not isinstance(model, AbsESPnetModel):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"

@@ -6,6 +6,7 @@ import librosa
 import os
 
 # provided pre-trained model
+## saved in ~/Project/espnet/tools/venv/envs/espnet/lib/python3.8/site-packages/espnet_model_zoo/d51358bee8acf0087b09afface2eb09
 
 # own model
 

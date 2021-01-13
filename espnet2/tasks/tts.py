@@ -21,6 +21,7 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.espnet_model import ESPnetTTSModel
+from espnet2.tts.espnet_model2 import ESPnetTTSModel2
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
@@ -255,6 +256,7 @@ class TTSTask(AbsTask):
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetTTSModel:
         assert check_argument_types()
+        print(args)
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -335,15 +337,27 @@ class TTSTask(AbsTask):
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
 
         # 5. Build model
-        model = ESPnetTTSModel(
-            feats_extract=feats_extract,
-            pitch_extract=pitch_extract,
-            energy_extract=energy_extract,
-            normalize=normalize,
-            pitch_normalize=pitch_normalize,
-            energy_normalize=energy_normalize,
-            tts=tts,
-            **args.model_conf,
-        )
+        if args.tts != "contrlEmo":
+            model = ESPnetTTSModel(
+                feats_extract=feats_extract,
+                pitch_extract=pitch_extract,
+                energy_extract=energy_extract,
+                normalize=normalize,
+                pitch_normalize=pitch_normalize,
+                energy_normalize=energy_normalize,
+                tts=tts,
+                **args.model_conf,
+            )
+        else:
+            model = ESPnetTTSModel2(
+                feats_extract=feats_extract,
+                pitch_extract=pitch_extract,
+                energy_extract=energy_extract,
+                normalize=normalize,
+                pitch_normalize=pitch_normalize,
+                energy_normalize=energy_normalize,
+                tts=tts,
+                **args.model_conf,
+            )
         assert check_return_type(model)
         return model
