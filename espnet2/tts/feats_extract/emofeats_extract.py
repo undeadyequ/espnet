@@ -52,7 +52,7 @@ class Emofeats_extract:
                 center_clipped.append(0)
         p3 = time.time()
         # auto_corrs = librosa.core.autocorrelate(np.array(center_clipped))
-        pitch, _, _ = librosa.pyin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
+        pitch, _, _ = librosa.pyin(speech, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
         pitch = [0 if math.isnan(p) else p for p in pitch]
         p4 = time.time()
         print("audio size: {}, pitch:{}".format(len(y) / 44100.0, (p4 - p3)))
