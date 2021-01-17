@@ -1,20 +1,40 @@
 import torch
-from typing import Tuple, List
+from typing import Tuple, Dict, Any
 import librosa
 import numpy as np
 import time
 import math
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
-class Emofeats_extract:
+
+class Emofeats_extract(AbsFeatsExtract):
     """
     Extract emofeats: 10
     """
     def __init__(self):
-        pass
+        super().__init__()
 
-    def forward(self,
-                speech: torch.Tensor
-                ) -> List[float]:
+    def get_parameters(self) -> Dict[str, Any]:
+        return dict(
+            fs=self.fs,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            window=self.window,
+            win_length=self.win_length,
+            center=self.stft.center,
+            normalized=self.stft.normalized,
+            use_token_averaged_energy=self.use_token_averaged_energy,
+            reduction_factor=self.reduction_factor,
+        )
+
+    def output_size(self) -> int:
+        raise 1
+
+    def forward(
+            self,
+            speech: torch.Tensor,
+            speech_lengths: torch.Tensor
+                ) -> Tuple[torch.Tensor, torch.Tensor]:
         emofeats_list = []
 
         # sig

@@ -128,7 +128,7 @@ data_json = {
     - Real train
         exp/char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst
     - Debug train
-     
+
 
 2. Decode/Synthesis experiment
     - real decode/synthesis
@@ -137,13 +137,13 @@ data_json = {
 
     - debug decode
         ...decode_ys_inference        # delete style branch
-        ...decode_ys_inference_denorm # 
-       
+        ...decode_ys_inference_denorm #
+
 1. ck_style_concnt
-       
+
    --backend pytorch --ngpu 1 --minibatches 0 --outdir ../../egs/blizzard13/tts2_gst/exp/blizzard2013_char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst/results_ck_style_concnt --tensorboard-dir ../../egs/blizzard13/tts2_gst/tensorboard/blizzard2013_char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst/ck_style_concnt --verbose 1 --seed 1 --train-json  /home/Data/program_data/espnet2/dump/char_train_no_dev/data.json --valid-json /home/Data/program_data/espnet2/dump/char_dev/data.json --config ../../egs/blizzard13/tts2_gst/conf/train_pytorch_tacotron2+cbhg+gst.yaml
 
-2. 
+2.
 
 
 ## Install
@@ -160,7 +160,7 @@ data_json = {
     - Make
         - cd ../tools
         - make   # install python library
-        - 
+        -
 
 
 
@@ -170,26 +170,241 @@ data_json = {
         - Example (call)
             0:0:23 ~ 0:0:26 : KY
             0:0:26 ~ 0:0:29 : Al
-           
+
     - Speech_lenght: Extract specific lenght
 
-## Fastspeech 
-    - Teacherforce of Energy and Pitch in inference 
 
-## Fastspeech2
-    - 
- 
+## Algorithm
+    ## Fastspeech
+        - Teacherforce of Energy and Pitch in inference
+
+    ## Fastspeech2
+    -
+
+## Arguments process
+    - append Args by Class.add_parameter(parser)
+    - Args inputs should be matched with appended Args
+    - Class including TTSTask, add all args in class_choices_list(used espnetModel), and AbsTask
+
+##
 
 ## Mel-bank computing
    - Firstly comput stft from wav by librosa.stft
    - then multiply mel with log to compute mel_bank
-   - make_fbank.sh => compute-fbank-feats.py => logmelspectrogram => librosa.stft 
+   - make_fbank.sh => compute-fbank-feats.py => logmelspectrogram => librosa.stft
 
 ## Segmentation info of audio
     - Used in vctk
- 
-## 
-    
+
+##
+
 ## Python skill
     - Argments Type
-    
+
+## waiting to do
+
+    - emo_extract normalization
+
+
+## Good implement
+
+    Class Text2Speech( \**model_path ):
+        @torch.no_grad()
+        def  __call__(text: String, ref_wav: array-like(s_len,)):
+            Pass
+        @property
+        def  use_speech() -> bool
+
+## tts.sh process stages
+    1. Data preparation
+    2. Extract feature or raw
+    3. Remove long/short sentence ( min/max frame_num)
+    4. Feature in air (type = raw)
+        -
+    5. TTS collect statsStage TTS collect stats:
+        => main_function/collect_stats(model, train_iter, valid_iter, ...) => espmodel.collect_stats
+
+    6. Train
+
+
+## mel-bank extraction
+
+Firstly compute stft from wav by librosa.stft, then multiply mel with log to compute mel_bank
+make_fbank.sh => compute-fbank-feats.py => logmelspectrogram => librosa.stft
+ABCMeta? ABC? (used in AbsFeatsExtract?)
+speech_lengths used in feature extraction? clip?
+
+
+
+Class AbsTask(ABC):
+
+## abstractTASK process
+    -
+def main_worker():
+    """
+    1. random-seed
+    2. build model <= from task specific task, TTSTask etc.
+    3. optimizer
+    4. build scheduler
+    5. Dump args to config.yaml
+    6. Loads pre-trained model
+    7. Resume the training state from the previous epoch
+    8A. collect_stats
+    8B. Build iterator factories
+    9B. Start training
+
+
+## abstractTASK VS ttsTASK
+ttsTask build task-specific model
+abstractTask use task-specific model with generate function(forward, inference)
+
+
+## batch generation
+    - Generate same seed by same epoch for reproductivity
+    - include SequenceIterFactory
+
+        iter_factory = cls.build_iter_factory(...)
+        for epoch in range(1, max_epoch):
+            for keys, batch in iter_factory.build_iter(epoch):
+                model(\**batch)
+
+        >>> iter_factory = cls.build_iter_factory(...)
+        >>> for epoch in range(1, max_epoch):
+        ...     for keys, batch in iter_fatory.build_iter(epoch):
+        ...         model(\**batch)
+
+## ESPnetDataset DataLoader
+  - Example
+  ```python
+
+  class Mydataset(Dataset):
+    def __init(self):
+      self.mels
+      self.labels
+    def __getitem(self, index):
+      mel =self.mels[index]
+      lab = self.label[index]
+      sample = {"mel": mel, "label":label}
+      return sample
+    def __len__(self):
+      return len(self.labels)
+
+  dataset = Mydataset()
+  dataloader = DataLoader(dataset, collate_fn, batch_size=4, shuffle=True, num_worker=4)
+
+  for i, samples in enumerate(dataloader):
+    print(samples["mels"].size())
+    print(samples["label"].size()
+
+  DataLoader(
+    dataset=self.dataset,
+    batch_sampler=batches,
+    num_workers=self.num_workers,
+    pin_memory=self.pin_memory,
+    **kwargs,)
+  ```
+
+  1. random-seed
+  2. build model <= from task specific task, TTSTask etc.
+  3. optimizer
+  4. build scheduler
+  5. Dump args to config.yaml
+  6. Loads pre-trained model
+  7. Resume the training state from the previous epoch
+  8A. collect_stats
+  8B. Build iterator factories
+  9B. Start training
+
+
+[AbsTask] ->main():None []
+->main_worker(args):None [ESPnetTTSModel]
+  ->build_model(args):model [TTSTask]
+    # feats_extract
+    ->feats_extractor_choices.get_class(args.feats_extract):feats_extract_class
+    ->feats_extract_class(**args.feats_extract_conf):feats_extract
+    # emo_extract
+    ...
+    ->emofeats_extract_class():emo_extract
+    ...
+    ->emo_classifier_class():emo_classifier
+    # Normalizer
+    ...
+    # TTS
+    ...
+    ->tts_class(idim, odim, **args.tts_conf):tts
+    # Extract component
+    ...
+    ->pitch_extract_class(**args.pitch_extract_conf):pitch_extract
+
+    # Conclude
+    ->ESPnetTTSModel(feats_extract, emo_extract, emo_classifier, tts):model
+
+  ->build_optimizer(args, model=model):
+  ->scheduler_classes.get(name):scheduler
+  ->schedulers.append(scheduler)
+  ->build_iter_factory(args):train_iter_factory []
+    ->build_sequence_iter_factory(args, iter_option):SequenceIterFactory [] \
+      ->ESPnetDataset(iter_option.data_path_and_name_and_type, iter_option.preprocess):dataset [torch.utils.data.ESPnetDataset]
+      ->build_batch_sampler(iter_option.batch_type, iter_option.shape_files, batch_size):batch_sampler [sampler.build_batch_sampler]
+      ->SequenceIterFactory(dataset, batches, args.seeds):DataLoader []
+        ->
+  ->build_iter_factory(args):valid_iter_factory []
+  ->trainer.run(model,
+                optimizers,
+                schedulers,
+                train_iter_factory,
+                valid_iter_factory,
+                seeds)
+
+
+
+
+
+
+
+
+
+
+
+  ```python
+    dataset = ESPnetDataset(
+        iter_options.data_path_and_name_and_type,
+        float_dtype=args.train_dtype,
+        preprocess=iter_options.preprocess_fn,
+        max_cache_size=iter_options.max_cache_size,
+        max_cache_fd=iter_options.max_cache_fd,
+    )
+    for iiter, (\_, batch) in enumerate(
+        reporter.measure_iter_time(iterator, "iter_time"), 1
+    ):
+    - Iterator, used in trainer, is the a dataloader with indices comming from self-defined sampler
+
+    train_iter_factory = cls.build_iter_factory(
+         args=args,
+         distributed_option=distributed_option,
+         mode="train",
+     )
+  ```
+
+
+
+## Kaldiio
+  - used in file io directly from scp/ark to numpy array
+
+
+## Dump ‘s subdirectory
+  - fbank, stft, raw
+
+
+## Other
+speech audio,
+speech txt same Length
+
+
+------------------------------------
+    6. evaluate
+        Plot attn
+        Generate Mel-bank
+        Synthesize audio
+    7. reming
+    """

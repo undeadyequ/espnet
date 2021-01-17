@@ -24,7 +24,7 @@ from espnet2.tts.espnet_model import ESPnetTTSModel
 from espnet2.tts.espnet_emo_contrl_model import EspnetEmoTTSModel
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
-from espnet2.tts.controllabelEmoTTS import
+from espnet2.tts.controllabelEmoTTS import ControllableEmoTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
@@ -33,6 +33,7 @@ from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.feats_extract.emofeats_extract import Emofeats_extract
 from espnet2.tts.ser.ser_model import SER_XGB
 from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.tts.controllabelEmoTTS import ControllableEmoTTS
 from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -99,7 +100,7 @@ tts_choices = ClassChoices(
         transformer=Transformer,
         fastspeech=FastSpeech,
         fastspeech2=FastSpeech2,
-        emocontrlspeech=ContrlemoTTS,
+        emocontrl=ControllableEmoTTS,
     ),
     type_check=AbsTTS,
     default="tacotron2",
@@ -126,6 +127,8 @@ class TTSTask(AbsTask):
         energy_extractor_choices,
         # --energy_normalize and --energy_normalize_conf
         energy_normalize_choices,
+        #
+        #emo_feats_extractor_choices
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -161,7 +164,7 @@ class TTSTask(AbsTask):
             help="The keyword arguments for model class.",
         )
 
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group(description="preprocess related")
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
@@ -208,6 +211,11 @@ class TTSTask(AbsTask):
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
+
+        parser.add_argument("--emoclassifier",
+                            default="xgboost")
+        parser.add_argument("--emofeats_extract",
+                            default="librosa")
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -301,7 +309,7 @@ class TTSTask(AbsTask):
 
         if args.tts == "emocontrl":
             emofeats_extract_class = emo_feats_extractor_choices.get_class(args.emofeats_extract)
-            emofeats_extract = emofeats_extract_class(**args.emofeats_extract_conf)
+            emofeats_extract = emofeats_extract_class()
             emo_classifier_class = emo_classifier_choices.get_class(args.emoclassifier)
         else:
             args.emofeats_extract = None
@@ -317,10 +325,10 @@ class TTSTask(AbsTask):
         else:
             normalize = None
 
-        if args.tts == "emocontrl":
-            emofeats_normalize_class = normalize_choices.get_class(args.emofeats_normalize)
-            emofeats_normalize = emofeats_normalize_class(**args.emofeats_normalize_conf)
-
+        if args.tts == "emocontrl":  # wait to do
+            #emofeats_normalize_class = normalize_choices.get_class(args.emofeats_normalize)
+            #emofeats_normalize = emofeats_normalize_class(**args.emofeats_normalize_conf)
+            emofeats_normalize = None
         else:
             emofeats_normalize = None
 
@@ -373,6 +381,7 @@ class TTSTask(AbsTask):
             model = EspnetEmoTTSModel(
                 mel_extract=feats_extract,
                 emo_feats_extract=emofeats_extract,
+                emo_feats_normalize=emofeats_normalize,
                 tts=tts,
                 pretrained_SER=emo_classifier_class,
                 **args.model_conf,
@@ -388,5 +397,5 @@ class TTSTask(AbsTask):
                 tts=tts,
                 **args.model_conf,
             )
-        assert check_return_type(model)
+        #assert check_return_type(model)
         return model

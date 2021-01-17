@@ -24,7 +24,6 @@ from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet2.tts.ct.contrl_encoder import ContrlEncoder
 
 
 class ControllableEmoTTS(Tacotron2):
