@@ -609,6 +609,12 @@ if ! "${skip_train}"; then
                 _fold_length="${speech_fold_length}"
                 _odim="$(<${_train_dir}/feats_dim)"
                 _opts+="--odim=${_odim} "
+
+                _emo_scp=emo_feats.scp
+                _emo_type=csv_txt
+                _fold_length=?
+                _emo_feats_dim="$(<${_train_dir}/emo_feats_dim)"
+                _opts+="--emo_feats_dim=${_emo_feats_dim}"
             fi
 
             if [ "${num_splits}" -gt 1 ]; then
@@ -631,13 +637,12 @@ if ! "${skip_train}"; then
                 else
                     log "${_split_dir}/.done exists. Spliting is skipped"
                 fi
-
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_emo_scp},emo_feats,${_emo_type} "
                 _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
                 _opts+="--train_shape_file ${_split_dir}/speech_shape "
                 _opts+="--multiple_iterator true "
-
             else
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "

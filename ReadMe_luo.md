@@ -357,15 +357,6 @@ abstractTask use task-specific model with generate function(forward, inference)
                 seeds)
 
 
-
-
-
-
-
-
-
-
-
   ```python
     dataset = ESPnetDataset(
         iter_options.data_path_and_name_and_type,
@@ -400,6 +391,10 @@ abstractTask use task-specific model with generate function(forward, inference)
 speech audio,
 speech txt same Length
 
+  - 1/17
+    - Why multi Schedulers, optimizer?
+    - Scaler?
+    - 
 
 ------------------------------------
     6. evaluate
