@@ -346,8 +346,8 @@ abstractTask use task-specific model with generate function(forward, inference)
     ->build_sequence_iter_factory(args, iter_option):SequenceIterFactory [] \
       ->ESPnetDataset(iter_option.data_path_and_name_and_type, iter_option.preprocess):dataset [torch.utils.data.ESPnetDataset]
       ->build_batch_sampler(iter_option.batch_type, iter_option.shape_files, batch_size):batch_sampler [sampler.build_batch_sampler]
-      ->SequenceIterFactory(dataset, batches, args.seeds):DataLoader []
-        ->
+      ->SequenceIterFactory(dataset, batches, args.seeds):seqFactor []
+        ->self.build_iter(epoch): Dataloader []
   ->build_iter_factory(args):valid_iter_factory []
   ->trainer.run(model,
                 optimizers,
@@ -355,6 +355,8 @@ abstractTask use task-specific model with generate function(forward, inference)
                 train_iter_factory,
                 valid_iter_factory,
                 seeds)
+    ->
+    ->train_one_epoch(model, )
 
 
   ```python
@@ -378,6 +380,9 @@ abstractTask use task-specific model with generate function(forward, inference)
   ```
 
 
+## debug
+--use_preprocessor true --token_type phn --token_list /home/Data/blizzard2013_part_preprocess/data/token_list/phn_tacotron_g2p_en_no_space/tokens.txt --non_linguistic_symbols none --cleaner tacotron --g2p g2p_en_no_space --normalize global_mvn --normalize_conf stats_file=/home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/train/feats_stats.npz --resume false --fold_length 150 --fold_length 800 --output_dir /home/Data/blizzard2013_part_preprocess/exp/tts_train_fbank_phn_tacotron_g2p_en_no_space --config /home/rosen/Project/espnet/egs2/blizzard2013/tts3/conf/train.yaml --odim=80 --train_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/text,text,text --train_data_path_and_name_and_type
+/home/Data/blizzard2013_part_preprocess/dump/emo_feats/emo_feats_etfs.csv,emo_feats,csv_float --train_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/feats.scp,speech,kaldi_ark --train_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/train/text_shape.phn --train_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/train/speech_shape --valid_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/dev/text,text,text --valid_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/dev/feats.scp,speech,kaldi_ark --valid_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/valid/text_shape.phn --valid_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/valid/speech_shape
 
 ## Kaldiio
   - used in file io directly from scp/ark to numpy array
@@ -387,14 +392,17 @@ abstractTask use task-specific model with generate function(forward, inference)
   - fbank, stft, raw
 
 
-## Other
+## Question
 speech audio,
 speech txt same Length
 
   - 1/17
     - Why multi Schedulers, optimizer?
     - Scaler?
-    - 
+    - Only 1 sample in each batch
+
+  - 1/18
+    - speech_fold_length
 
 ------------------------------------
     6. evaluate

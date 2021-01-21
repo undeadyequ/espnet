@@ -11,8 +11,14 @@ import time
 import math
 import collections
 
+from sklearn.preprocessing import MinMaxScaler
 
-def extract_feature(audio_f, sr=44100):
+
+def extract_feature(
+        audio_f: str,
+        sr: int = 44100,
+        normlaize: bool = False,
+        min_max_stats_f: str = None):
     """
     extract feature like below:
     sig:
@@ -24,6 +30,7 @@ def extract_feature(audio_f, sr=44100):
     audio: audio file or audio list
     return feature_list: np of [n_samples, n_features]
     """
+
     feature_list = []
     y = []
     if isinstance(audio_f, str):
@@ -68,4 +75,17 @@ def extract_feature(audio_f, sr=44100):
     feature_list.append(np.mean(pitch))
     feature_list.append(np.std(pitch))
 
-    return np.array(feature_list).reshape(1, -1)
+    feature_list = np.array(feature_list).reshape(1, -1)
+
+    # Check Normalization
+
+    if normlaize:
+        if min_max_stats_f is None:
+            raise IOError("Must input min_max_stats_f")
+        else:
+            scalar = MinMaxScaler()
+            train_feats_stats = pd.read_csv(min_max_stats_f)
+            scalar.fit(train_feats_stats)
+            feature_list = scalar.transform(feature_list)
+
+    return feature_list

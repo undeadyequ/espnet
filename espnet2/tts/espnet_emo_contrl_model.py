@@ -41,25 +41,40 @@ class EspnetEmoTTSModel(AbsESPnetModel):
         self.tts = tts
         self.pretrained_ser = pretrained_SER
 
-
     def forward(self,
                 text: torch.Tensor,
                 text_lengths: torch.Tensor,
                 speech: torch.Tensor,
-                speech_lengths: torch.Tensor
+                speech_lengths: torch.Tensor,
+                emo_feats: torch.Tensor,
+                emo_feats_lengths: torch.Tensor
                 ):
+        """
+        :param text:
+        :param text_lengths:
+        :param speech:
+        :param speech_lengths:
+        :param emo_feats: (1, 8)
+        :param emo_feats_length: (1)
+        :return:
+        """
+        """
         # Extract emotional feature
-        print()
         emo_feats = self.emo_feats_extract(speech, speech_lengths)
         mels = self.mel_extract(speech)
 
         # Compute emo distributions here because pretrained_ser is not trainable
         emo_distrb = self.pretrained_ser(emo_feats)
+        """
 
         return self.tts(
-                text=text,
-                speech=mels,
-                emo_distrbs=emo_distrb)
+            text=text,
+            text_lengths=text_lengths,
+            speech=speech,
+            speech_lengths=speech_lengths,
+            emo_feats=emo_feats,
+            emo_feats_lengths=emo_feats_lengths
+        )
 
     def collect_feats(
             self,
@@ -67,34 +82,33 @@ class EspnetEmoTTSModel(AbsESPnetModel):
             text_lengths: torch.Tensor,
             speech: torch.Tensor,
             speech_lengths: torch.Tensor,
-            emo_feats: torch.Tensor
-            ):
+            emo_feats: torch.Tensor,
+            emo_feats_lengths: torch.Tensor):
+        """
         if self.mel_extract is not None:
             feats, feats_lengths = self.mel_extract(speech, speech_lengths)
         else:
             feats, feats_lengths = speech, speech_lengths
-        feats_dict = {"feats": feats, "feats_lengths": feats_lengths}
 
         if self.emo_feats_extract is not None:
             emo_feats = self.emo_feats_extract(speech)
             feats_dict.update(emo_feats=emo_feats)
-
+        """
+        feats_dict = {"feats": speech, "feats_lengths": speech_lengths}
         return feats_dict
-
 
     def inference(self,
                   text: torch.Tensor,
                   text_lengths: torch.Tensor,
-                  speech: torch.Tensor,
-                  speech_lengths: torch.Tensor,
                   emo_feats: torch.Tensor,
-                  emo_distrbs: torch.Tensor,
-                  ):
+                  emo_feats_lengths: torch.Tensor):
         """
         3 types inference
             1. with reference audio
             2. with emotional distributions
             3. with emotional features
+        """
+
         """
         if speech is not None:
             emo_feats = self.emo_feats_extract(speech)
@@ -105,8 +119,7 @@ class EspnetEmoTTSModel(AbsESPnetModel):
             pass
         else:
             raise IOError
-
+        """
         return self.tts.inference(
             text=text,
-            emo_distrbs=emo_distrbs
-        )
+            emo_feats=emo_feats)

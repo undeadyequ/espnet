@@ -3,6 +3,11 @@
 
 """Tacotron 2 related modules for ESPnet2."""
 
+"""
+Not used anymore
+"""
+
+
 import logging
 from typing import Dict
 from typing import Sequence
@@ -75,7 +80,7 @@ class ControllableEmoTTS(Tacotron2):
                  use_guided_attn_loss: bool = True,
                  guided_attn_loss_sigma: float = 0.4,
                  guided_attn_loss_lambda: float = 1.0,
-                 emo_distrb_dim: int = 5,
+                 emo_distrb_dim: int = 8,
                  style_token_dim: int = 6
                  ):
 
@@ -133,12 +138,33 @@ class ControllableEmoTTS(Tacotron2):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
+        emo_feats: torch.Tensor,
+        emo_feats_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
         emo_distrbs: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        """
 
-        style_token = self.prosody_encoder([text, emo_distrbs])
-        text_style = text + style_token
+        :param text:Tacotron2ControlLoss
+        :param text_lengths:
+        :param speech:
+        :param speech_lengths:
+        :param emo_feats:  input feats
+        :param emo_feats_length:
+        :param spembs:
+        :param emo_distrbs: Input distribs
+        :return:
+        """
+        # emo controllable TTS
+        if emo_distrbs is not None:
+            pass
+
+        # Controllable TTS
+        elif emo_feats is not None:
+            style_token = self.prosody_encoder(emo_feats)
+            text_style = text + style_token
+        else:
+            raise IOError("Must input emo_distrbs or emo_feats")
 
         super(ControllableEmoTTS, self).forward(
             text_style,
@@ -150,6 +176,7 @@ class ControllableEmoTTS(Tacotron2):
     def inference(
         self,
         text: torch.Tensor,
+        emo_feats: torch.Tensor,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
@@ -162,8 +189,15 @@ class ControllableEmoTTS(Tacotron2):
         emo_distrbs : torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
-        style_token = self.prosody_encoder([text, emo_distrbs])
-        text_style = text + style_token
+        if emo_distrbs is not None:
+            pass
+
+        # interpratable TTS
+        elif emo_feats is not None:
+            style_token = self.prosody_encoder([text, emo_feats])
+            text_style = text + style_token
+        else:
+            raise IOError("Must input emo_distrbs or emo_feats")
 
         super(ControllableEmoTTS, self).inference(
             text_style,

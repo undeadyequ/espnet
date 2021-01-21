@@ -21,7 +21,7 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.espnet_model import ESPnetTTSModel
-from espnet2.tts.espnet_model2 import ESPnetTTSModel2
+from espnet2.tts.espnet_emo_contrl_model import EspnetEmoTTSModel
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract

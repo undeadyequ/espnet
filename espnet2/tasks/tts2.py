@@ -24,7 +24,6 @@ from espnet2.tts.espnet_model import ESPnetTTSModel
 from espnet2.tts.espnet_emo_contrl_model import EspnetEmoTTSModel
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
-from espnet2.tts.controllabelEmoTTS import ControllableEmoTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
@@ -33,7 +32,7 @@ from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.feats_extract.emofeats_extract import Emofeats_extract
 from espnet2.tts.ser.ser_model import SER_XGB
 from espnet2.tts.tacotron2 import Tacotron2
-from espnet2.tts.controllabelEmoTTS import ControllableEmoTTS
+from espnet2.tts.tacotron2_contrllabel import Tacotron2_controllable
 from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -100,7 +99,7 @@ tts_choices = ClassChoices(
         transformer=Transformer,
         fastspeech=FastSpeech,
         fastspeech2=FastSpeech2,
-        emocontrl=ControllableEmoTTS,
+        emocontrl=Tacotron2_controllable,
     ),
     type_check=AbsTTS,
     default="tacotron2",
@@ -262,7 +261,7 @@ class TTSTask(AbsTask):
             retval = ("text", "speech")
         else:
             # Inference mode
-            retval = ("text",)
+            retval = ("text")
         return retval
 
     @classmethod
@@ -270,10 +269,10 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy")
+            retval = ("spembs", "durations", "pitch", "energy", "emo_feats")
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations")
+            retval = ("spembs", "speech", "durations", "emo_feats")
         return retval
 
     @classmethod

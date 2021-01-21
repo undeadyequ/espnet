@@ -610,13 +610,12 @@ if ! "${skip_train}"; then
                 _odim="$(<${_train_dir}/feats_dim)"
                 _opts+="--odim=${_odim} "
 
-                _emo_scp=emo_feats.scp
-                _emo_type=csv_txt
-                _fold_length=?
-                _emo_feats_dim="$(<${_train_dir}/emo_feats_dim)"
-                _opts+="--emo_feats_dim=${_emo_feats_dim}"
+                _emo_scp=emo_feats_etfs.csv
+                _emo_type=csv_float
+                #_emo_feats_dim="$(<${_train_dir}/emo_feats_dim)"
+                #_opts+="--emo_feats_dim=${_emo_feats_dim} "
             fi
-
+            echo "Hello1"
             if [ "${num_splits}" -gt 1 ]; then
                 # If you met a memory error when parsing text files, this option may help you.
                 # The corpus is split into subsets and each subset is used for training one by one in order,
@@ -646,6 +645,7 @@ if ! "${skip_train}"; then
             else
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_emo_scp},emo_feats,${_emo_type} "
                 _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
                 _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
             fi

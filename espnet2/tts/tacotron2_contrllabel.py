@@ -13,21 +13,129 @@ import torch.nn.functional as F
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
-from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
+from espnet.nets.pytorch_backend.tacotron2.decoder_extra_input import Decoder_extra_input
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet2.tts.ct.contrl_encoder import ContrlEncoder
+from espnet2.tts.prosody.prosody_encoder import ProsodyEncoder
 
 
-class ContrlemoTTS(AbsTTS):
-    """Tacotron2 module for end-to-end text-to-speech.
+class Tacotron2ControlLoss(torch.nn.Module):
+    """Loss function module for Tacotron2."""
+
+    def __init__(
+        self, use_masking=True, use_weighted_masking=False, bce_pos_weight=20.0
+    ):
+        """Initialize Tactoron2 loss module.
+
+        Args:
+            use_masking (bool): Whether to apply masking
+                for padded part in loss calculation.
+            use_weighted_masking (bool):
+                Whether to apply weighted masking in loss calculation.
+            bce_pos_weight (float): Weight of positive sample of stop token.
+
+        """
+        super(Tacotron2ControlLoss, self).__init__()
+        assert (use_masking != use_weighted_masking) or not use_masking
+        self.use_masking = use_masking
+        self.use_weighted_masking = use_weighted_masking
+
+        # define criterions
+        reduction = "none" if self.use_weighted_masking else "mean"
+        self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
+        self.mse_criterion = torch.nn.MSELoss(reduction=reduction)
+        self.bce_criterion = torch.nn.BCEWithLogitsLoss(
+            reduction=reduction, pos_weight=torch.tensor(bce_pos_weight)
+        )
+
+        # NOTE(kan-bayashi): register pre hook function for the compatibility
+        self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)
+
+    def forward(self, after_outs, before_outs, logits, ys, labels, olens, prosody, emfeats):
+        """Calculate forward propagation.
+
+        Args:
+            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
+            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
+            logits (Tensor): Batch of stop logits (B, Lmax).
+            ys (Tensor): Batch of padded target features (B, Lmax, odim).
+            labels (LongTensor): Batch of the sequences of stop token labels (B, Lmax).
+            olens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: L1 loss value.
+            Tensor: Mean square error loss value.
+            Tensor: Binary cross entropy loss value.
+
+        """
+        # make mask and apply it
+        if self.use_masking:
+            masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            ys = ys.masked_select(masks)
+            after_outs = after_outs.masked_select(masks)
+            before_outs = before_outs.masked_select(masks)
+            labels = labels.masked_select(masks[:, :, 0])
+            logits = logits.masked_select(masks[:, :, 0])
+
+        # calculate loss
+        l1_loss = self.l1_criterion(after_outs, ys) + self.l1_criterion(before_outs, ys)
+        mse_loss = self.mse_criterion(after_outs, ys) + self.mse_criterion(
+            before_outs, ys
+        )
+        bce_loss = self.bce_criterion(logits, labels)
+        psd_loss = self.mse_criterion(prosody, emfeats)
+
+        # make weighted mask and apply it
+        if self.use_weighted_masking:
+            masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            weights = masks.float() / masks.sum(dim=1, keepdim=True).float()
+            out_weights = weights.div(ys.size(0) * ys.size(2))
+            logit_weights = weights.div(ys.size(0))
+
+            # apply weight
+            l1_loss = l1_loss.mul(out_weights).masked_select(masks).sum()
+            mse_loss = mse_loss.mul(out_weights).masked_select(masks).sum()
+            bce_loss = (
+                bce_loss.mul(logit_weights.squeeze(-1))
+                .masked_select(masks.squeeze(-1))
+                .sum()
+            )
+
+        return l1_loss, mse_loss, bce_loss, psd_loss
+
+    def _load_state_dict_pre_hook(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        """Apply pre hook fucntion before loading state dict.
+
+        From v.0.6.1 `bce_criterion.pos_weight` param is registered as a parameter but
+        old models do not include it and as a result, it causes missing key error when
+        loading old model parameter. This function solve the issue by adding param in
+        state dict before loading as a pre hook function
+        of the `load_state_dict` method.
+
+        """
+        key = prefix + "bce_criterion.pos_weight"
+        if key not in state_dict:
+            state_dict[key] = self.bce_criterion.pos_weight
+
+
+class Tacotron2_controllable(AbsTTS):
+    """Tacotron2_controllable module for end-to-end text-to-speech.
 
     This is a module of Spectrogram prediction network in Tacotron2 described
     in `Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_,
@@ -93,6 +201,7 @@ class ContrlemoTTS(AbsTTS):
         # network structure related
         idim: int,
         odim: int,
+        extra_idim: int = 8,
         embed_dim: int = 512,
         elayers: int = 1,
         eunits: int = 512,
@@ -127,8 +236,6 @@ class ContrlemoTTS(AbsTTS):
         gst_conv_stride: int = 2,
         gst_gru_layers: int = 1,
         gst_gru_units: int = 128,
-        contl_index=10,
-        contl_units = 128,
         # training related
         dropout_rate: float = 0.5,
         zoneout_rate: float = 0.1,
@@ -147,6 +254,7 @@ class ContrlemoTTS(AbsTTS):
         # store hyperparameters
         self.idim = idim
         self.odim = odim
+        self.extra_idim = extra_idim
         self.eos = idim - 1
         self.spk_embed_dim = spk_embed_dim
         self.cumulate_att_w = cumulate_att_w
@@ -199,9 +307,12 @@ class ContrlemoTTS(AbsTTS):
                 gru_layers=gst_gru_layers,
                 gru_units=gst_gru_units,
             )
-
-        if self.use_contrl:
-            self.contrl = ContrlEncoder(contl_index, contl_units)
+        self.prosody = ProsodyEncoder(
+                text_dim=embed_dim,
+                prosody_dim=extra_idim,
+                elayers=3,
+                eunits=128
+        )
 
         if spk_embed_dim is None:
             dec_idim = eunits
@@ -233,9 +344,10 @@ class ContrlemoTTS(AbsTTS):
                 self.cumulate_att_w = False
         else:
             raise NotImplementedError("Support only location or forward")
-        self.dec = Decoder(
+        self.dec = Decoder_extra_input(
             idim=dec_idim,
             odim=odim,
+            extra_idim=self.extra_idim,
             att=att,
             dlayers=dlayers,
             dunits=dunits,
@@ -252,7 +364,7 @@ class ContrlemoTTS(AbsTTS):
             zoneout_rate=zoneout_rate,
             reduction_factor=reduction_factor,
         )
-        self.taco2_loss = Tacotron2Loss(
+        self.taco2_cotrl_loss = Tacotron2ControlLoss(
             use_masking=use_masking,
             use_weighted_masking=use_weighted_masking,
             bce_pos_weight=bce_pos_weight,
@@ -269,7 +381,9 @@ class ContrlemoTTS(AbsTTS):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        spembs: torch.Tensor = None,
+        emo_feats: torch.Tensor,
+        emo_feats_lengths: torch.Tensor,
+        spembs: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -300,13 +414,15 @@ class ContrlemoTTS(AbsTTS):
         ys = speech
         olens = speech_lengths
 
+        eilens = emo_feats_lengths
+
         # make labels for stop prediction
         labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate tacotron2 outputs
-        after_outs, before_outs, logits, att_ws = self._forward(
-            xs, ilens, ys, olens, spembs
+        after_outs, before_outs, logits, att_ws, prosody = self._forward(
+            xs, ilens, ys, olens, emo_feats, eilens, spembs
         )
 
         # modify mod part of groundtruth
@@ -318,8 +434,8 @@ class ContrlemoTTS(AbsTTS):
             labels[:, -1] = 1.0  # make sure at least one frame has 1
 
         # calculate taco2 loss
-        l1_loss, mse_loss, bce_loss = self.taco2_loss(
-            after_outs, before_outs, logits, ys, labels, olens
+        l1_loss, mse_loss, bce_loss, psd_loss = self.taco2_cotrl_loss(
+            after_outs, before_outs, logits, ys, labels, olens, prosody, emo_feats
         )
         if self.loss_type == "L1+L2":
             loss = l1_loss + mse_loss + bce_loss
@@ -329,6 +445,8 @@ class ContrlemoTTS(AbsTTS):
             loss = mse_loss + bce_loss
         else:
             raise ValueError(f"unknown --loss-type {self.loss_type}")
+
+        loss += psd_loss
 
         stats = dict(
             l1_loss=l1_loss.item(),
@@ -359,19 +477,25 @@ class ContrlemoTTS(AbsTTS):
         ilens: torch.Tensor,
         ys: torch.Tensor,
         olens: torch.Tensor,
-        spembs: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        emo_feats: torch.Tensor,
+        eilens: torch.Tensor,
+        spembs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         hs, hlens = self.enc(xs, ilens)
+        prosody = self.prosody(hs)
         if self.use_gst:
             style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
-        return self.dec(hs, hlens, ys)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys, emo_feats)
+        return after_outs, before_outs, logits, att_ws, prosody
 
     def inference(
         self,
         text: torch.Tensor,
+        emo_feats: torch.Tensor = None,
+        optional_bias: torch.Tensor = None,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
@@ -409,7 +533,7 @@ class ContrlemoTTS(AbsTTS):
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
 
-        # inference with teacher forcing
+        # inference with teacher forcingself.dec.infe
         if use_teacher_forcing:
             assert speech is not None, "speech must be provided with teacher forcing."
 
@@ -423,10 +547,9 @@ class ContrlemoTTS(AbsTTS):
 
         # inference
         h = self.enc.inference(x)
-
-        if self.use_contrl:
-            contrl_emb = self.contrl(y.unsqueeze(0))
-            h = h + contrl_emb
+        prosody = self.prosody.inference(h)
+        if optional_bias is not None:
+            prosody += optional_bias
 
         if self.use_gst:
             style_emb = self.gst(y.unsqueeze(0))
@@ -434,8 +557,12 @@ class ContrlemoTTS(AbsTTS):
         if self.spk_embed_dim is not None:
             hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
             h = self._integrate_with_spk_embed(hs, spembs)[0]
+
+        if emo_feats is None:
+            emo_feats = prosody
         outs, probs, att_ws = self.dec.inference(
             h,
+            emo_feats,
             threshold=threshold,
             minlenratio=minlenratio,
             maxlenratio=maxlenratio,
