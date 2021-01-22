@@ -11,7 +11,7 @@ def extract_emofeats_from_scp(
         normal_stats_f: str = "",
         clf_f: str = ""):
 
-    pd_path = pd.read_csv(wav_scp, delim_whitespace=True)
+    pd_path = pd.read_csv(wav_scp, delim_whitespace=True, header=None)
     pd_emo = pd.DataFrame()
     emo_feats = []
     normal = False
@@ -49,8 +49,8 @@ def extract_emofeats_lab_from_scp(
 
 def get_parser():
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("--scp", default="/home/Data/blizzard2013_part_preprocess/dump/fbank/dev/wav.scp", type=str)
-    parser.add_argument("--csv", default="emo_feats_dev.csv", type=str)
+    parser.add_argument("--scp", default="/home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/wav_test.scp", type=str)
+    parser.add_argument("--csv", default="emo_feats_tr_no_dev_test.csv", type=str)
     parser.add_argument("--norm_f", default="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/feats_stats.csv", type=str)
     parser.add_argument("--clf_f", default="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/rf_classifier.pkl",
                         type=str)

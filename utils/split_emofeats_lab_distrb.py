@@ -35,5 +35,5 @@ def split_feats_lab_distb(fld_f):
 
 
 if __name__ == '__main__':
-    fld_f = "/home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/emo_feats.csv"
+    fld_f = "/home/rosen/Project/espnet/files/emo_feats_eval.csv"
     split_feats_lab_distb(fld_f)
