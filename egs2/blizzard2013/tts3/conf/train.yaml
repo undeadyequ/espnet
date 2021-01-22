@@ -30,7 +30,7 @@ tts_conf:                        # keyword arguments for the selected model
     use_batch_norm: true         # whether to use batch normalization in encoder
     use_concate: true            # whether to concatenate encoder embedding with decoder outputs
     use_residual: false          # whether to use residual connection in encoder
-    use_gst: true                # whether to use GST embedding
+    use_gst: false                # whether to use GST embedding
     gst_heads: 8                 # number of heads in GST multi-head attention
     gst_tokens: 128              # number of global style tokens
     dropout_rate: 0.5            # dropout rate

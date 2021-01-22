@@ -15,7 +15,7 @@ def split_feats_lab_distb(fld_f):
         for ln in infile:
             row = ln.rstrip().split(" ")
             eft = row[0] + " " + ",".join(row[1:9])
-            elb = row[0] + " " + ",".join(row[9])
+            elb = row[0] + " " + row[9]
             edt = row[0] + " " + ",".join(row[10:15])
             efts.append(eft)
             elbs.append(elb)
@@ -35,5 +35,5 @@ def split_feats_lab_distb(fld_f):
 
 
 if __name__ == '__main__':
-    fld_f = "/home/Data/blizzard2013_part_preprocess/dump/fbank/dev/emo_feats_dev.csv"
+    fld_f = "/home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/emo_feats.csv"
     split_feats_lab_distb(fld_f)
