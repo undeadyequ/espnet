@@ -651,6 +651,7 @@ if ! "${skip_train}"; then
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_emo_scp},emo_feats,${_emo_type} "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
         else
