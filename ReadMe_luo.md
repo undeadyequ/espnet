@@ -339,24 +339,45 @@ abstractTask use task-specific model with generate function(forward, inference)
     # Conclude
     ->ESPnetTTSModel(feats_extract, emo_extract, emo_classifier, tts):model
 
-  ->build_optimizer(args, model=model):
-  ->scheduler_classes.get(name):scheduler
-  ->schedulers.append(scheduler)
-  ->build_iter_factory(args):train_iter_factory []
-    ->build_sequence_iter_factory(args, iter_option):SequenceIterFactory [] \
-      ->ESPnetDataset(iter_option.data_path_and_name_and_type, iter_option.preprocess):dataset [torch.utils.data.ESPnetDataset]
-      ->build_batch_sampler(iter_option.batch_type, iter_option.shape_files, batch_size):batch_sampler [sampler.build_batch_sampler]
-      ->SequenceIterFactory(dataset, batches, args.seeds):seqFactor []
-        ->self.build_iter(epoch): Dataloader []
-  ->build_iter_factory(args):valid_iter_factory []
-  ->trainer.run(model,
-                optimizers,
-                schedulers,
-                train_iter_factory,
-                valid_iter_factory,
-                seeds)
-    ->
-    ->train_one_epoch(model, )
+->main(cmd): [TTSTask=>AbsTask]
+  ->main_worker(args): [AbsTask]
+    ->build_optimizer(args, model=model):
+    ->scheduler_classes.get(name):scheduler
+    ->schedulers.append(scheduler)
+    ->build_iter_factory(args):train_iter_factory []
+      ->build_sequence_iter_factory(args, iter_option):SequenceIterFactory [] \
+        ->ESPnetDataset(iter_option.data_path_and_name_and_type, iter_option.preprocess):dataset [torch.utils.data]
+        ->build_batch_sampler(iter_option.batch_type, iter_option.shape_files, batch_size):batch_sampler [samplers]
+          ->NumElementsBatchSampler()
+        ->SequenceIterFactory(dataset, batches, args.seeds):seqFactor []
+          ->self.build_iter(epoch): Dataloader []
+    ->build_iter_factory(args):valid_iter_factory []
+    ->trainer.run(model,
+                  optimizers,
+                  schedulers,
+                  train_iter_factory,
+                  valid_iter_factory,
+                  seeds)
+      ->
+      ->train_one_epoch(model, train)
+        -> model(**batch)
+
+## args
+  - Arguments Input
+    - train.yaml
+      - tts_conf is used to give args to model
+      - optim_conf is used to ... optimizer
+    - cmd args in run.sh and tts.sh
+
+  - Parse the Arguments
+    - add_arguments in AbsTask, TTSTask, trainer respectively
+    - no need add_arguments in model since they were gathered by model_conf
+    - implement:
+    ->main():None [AbsTask]
+      ->get_parser():config_argparser.ArgumentParser [ArgumentParser]
+        - cls.add_task_arguments(parser): None [TTSTask]
+        - cls.trainer.add_arguments(parser): None [Trainer]
+      ->parser.parse_args(cmd): args  <= parse cmd, including train.yaml which furthermore parsed by ArgumentParser
 
 
   ```python
@@ -396,18 +417,20 @@ abstractTask use task-specific model with generate function(forward, inference)
 speech audio,
 speech txt same Length
 
-  - 1/17
-    - Why multi Schedulers, optimizer?
-    - Scaler?
-    - Only 1 sample in each batch
+## diary
+- 1/17
+  - Why multi Schedulers, optimizer?
+  - Scaler?
+  - Only 1 sample in each batch
 
-  - 1/18
-    - speech_fold_length
+- 1/18
+  - speech_fold_length
 
-------------------------------------
-    6. evaluate
-        Plot attn
-        Generate Mel-bank
-        Synthesize audio
-    7. reming
-    """
+- 1/22
+  - Evaluate blizzard13 with IEMOCAP
+  - training properly
+    1. batch = 1?
+    2. reporter have no prosody weighted => check
+    3. modify 1 line emo_feats in dev and train
+
+- 1/22

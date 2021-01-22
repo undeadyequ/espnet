@@ -452,6 +452,7 @@ class Tacotron2_controllable(AbsTTS):
             l1_loss=l1_loss.item(),
             mse_loss=mse_loss.item(),
             bce_loss=bce_loss.item(),
+            psd_loss=psd_loss.item(),
         )
 
         # calculate attention loss

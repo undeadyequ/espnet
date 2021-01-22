@@ -756,21 +756,6 @@ if ! "${skip_train}"; then
         fi
         # shellcheck disable=SC2086
 
-        tts_train_log=$(pyscripts/utils/print_args.py --use_preprocessor true \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
-                --non_linguistic_symbols "${nlsyms_txt}" \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
-                --normalize global_mvn \
-                --normalize_conf "stats_file=${tts_stats_dir}/train/feats_stats.npz" \
-                --resume false \
-                --fold_length "${text_fold_length}" \
-                --fold_length "${_fold_length}" \
-                --output_dir "${tts_exp}" \
-                ${_opts} ${train_args})
-        echo ${tts_train_log} > tts_train.log.sh
-
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
             --log "${tts_exp}"/train.log \
