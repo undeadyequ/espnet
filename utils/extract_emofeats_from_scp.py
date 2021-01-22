@@ -49,8 +49,8 @@ def extract_emofeats_lab_from_scp(
 
 def get_parser():
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("--scp", default="/home/Data/blizzard2013_part_preprocess/dump/fbank/eval1/wav.scp", type=str)
-    parser.add_argument("--csv", default="emo_feats_eval.csv", type=str)
+    parser.add_argument("--scp", default="/home/Data/blizzard2013_part_preprocess/dump/fbank/dev/wav.scp", type=str)
+    parser.add_argument("--csv", default="emo_feats_dev.csv", type=str)
     parser.add_argument("--norm_f", default="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/feats_stats.csv", type=str)
     parser.add_argument("--clf_f", default="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/rf_classifier.pkl",
                         type=str)
