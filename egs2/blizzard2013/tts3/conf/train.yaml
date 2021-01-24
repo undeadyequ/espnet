@@ -58,6 +58,16 @@ optim_conf:           # keyword arguments for selected optimizer
 ##########################################################
 emoclassifier: xgboost           # used emotional classifier
 
+
+##########################################################
+#                  Prosody Feature Extract realted SETTING                     #
+##########################################################
+feats_extractor: luo
+    duration_level: phone
+    duration_tools: montreal-forced-aligner
+
+
+
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################

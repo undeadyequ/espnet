@@ -417,20 +417,8 @@ abstractTask use task-specific model with generate function(forward, inference)
 speech audio,
 speech txt same Length
 
-## diary
-- 1/17
-  - Why multi Schedulers, optimizer?
-  - Scaler?
-  - Only 1 sample in each batch
 
-- 1/18
-  - speech_fold_length
 
-- 1/22
-  - Evaluate blizzard13 with IEMOCAP
-  - training properly
-    1. batch = 1?
-    2. reporter have no prosody weighted => check
-    3. modify 1 line emo_feats in dev and train
+l1_loss=1.185, mse_loss=1.162, bce_loss=0.197, psd_loss=0.009, attn_loss=0.015, loss=2.567
 
 - 1/22
