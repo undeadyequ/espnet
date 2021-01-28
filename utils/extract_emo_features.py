@@ -14,8 +14,8 @@ import collections
 from sklearn.preprocessing import MinMaxScaler
 
 
-def extract_feature(
-        audio_f: str,
+def extract_emo_feature(
+        audio: str,
         sr: int = 44100,
         normlaize: bool = False,
         min_max_stats_f: str = None):
@@ -33,10 +33,10 @@ def extract_feature(
 
     feature_list = []
     y = []
-    if isinstance(audio_f, str):
-        y, _ = librosa.load(audio_f, sr)
-    elif isinstance(audio_f, np.ndarray):
-        y = audio_f
+    if isinstance(audio, str):
+        y, _ = librosa.load(audio, sr)
+    elif isinstance(audio, np.ndarray):
+        y = audio
     # 1. sig
     sig_mean = np.mean(abs(y))
     feature_list.append(sig_mean)  # sig_mean
