@@ -294,6 +294,8 @@ class Tacotron2_controllable(AbsTTS):
             padding_idx=padding_idx,
         )
 
+
+
         if self.use_gst:
             self.gst = StyleEncoder(
                 idim=odim,  # the input is mel-spectrogram
@@ -495,9 +497,10 @@ class Tacotron2_controllable(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        emo_feats: torch.Tensor = None,
-        optional_bias: torch.Tensor = None,
         speech: torch.Tensor = None,
+        emo_feats: torch.Tensor = None,
+        emolabs: torch.Tensor = None,
+        optional_bias: torch.Tensor = None,
         spembs: torch.Tensor = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -534,7 +537,7 @@ class Tacotron2_controllable(AbsTTS):
         # add eos at the last of sequence
         x = F.pad(x, [0, 1], "constant", self.eos)
 
-        # inference with teacher forcingself.dec.infe
+        # inference with teacher forcing
         if use_teacher_forcing:
             assert speech is not None, "speech must be provided with teacher forcing."
 
@@ -548,8 +551,16 @@ class Tacotron2_controllable(AbsTTS):
 
         # inference
         h = self.enc.inference(x)
-        prosody = self.prosody.inference(h)
-        if optional_bias is not None:
+
+        # Select controller (ref_audio has been extracted to emo_featsa in ESPnet)
+        if emo_feats is not None:
+            prosody = emo_feats.unsqueeze(0)
+        elif emolabs is not None:
+            pass                 # add self.ser model
+        else:
+            prosody = self.prosody.inference(h)  # if no controller
+
+        if optional_bias is not None:       # is not used
             prosody += optional_bias
 
         if self.use_gst:
@@ -559,11 +570,9 @@ class Tacotron2_controllable(AbsTTS):
             hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
             h = self._integrate_with_spk_embed(hs, spembs)[0]
 
-        if emo_feats is None:
-            emo_feats = prosody
         outs, probs, att_ws = self.dec.inference(
             h,
-            emo_feats,
+            extra=prosody,
             threshold=threshold,
             minlenratio=minlenratio,
             maxlenratio=maxlenratio,

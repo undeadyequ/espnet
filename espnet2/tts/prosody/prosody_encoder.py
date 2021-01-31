@@ -49,15 +49,32 @@ class ProsodyEncoder(torch.nn.Module):
         """
 
     def forward(self, text_hs):
+        """
+
+        Args:
+            text_hs: [ t_l, t_units ]
+
+        Returns:
+
+        """
         out, (h_n, c_n) = self.lstms(text_hs)
-        prosody = h_n
+        prosody = h_n[-1]    # h_s of last layer
         for i in range(len(self.lns)):
             prosody = self.lns[i](prosody)
         return prosody
 
     def inference(self, text_hs):
+        """
+
+        Args:
+            text_hs:
+
+        Returns:
+            prosody:
+        """
+        text_hs = text_hs.unsqueeze(0)
         out, (h_n, c_n) = self.lstms(text_hs)
-        prosody = h_n
+        prosody = h_n[-1]       # h_s of last layer
         for i in range(len(self.lns)):
             prosody = self.lns[i](prosody)
         return prosody

@@ -277,6 +277,8 @@ if ! "${skip_data_prep}"; then
         log "Stage 1: Data preparation for ${data}/${train_set}, ${data}/${valid_set}, etc."
         # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts}
+
+        utils/
     fi
 
 

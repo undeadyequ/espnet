@@ -16,7 +16,6 @@ from espnet2.tts.abs_emotts import AbsEmoTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.emofeats_extract import Emofeats_extract
 
-
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
 else:
@@ -99,9 +98,15 @@ class EspnetEmoTTSModel(AbsESPnetModel):
 
     def inference(self,
                   text: torch.Tensor,
-                  text_lengths: torch.Tensor,
-                  emo_feats: torch.Tensor,
-                  emo_feats_lengths: torch.Tensor):
+                  speech: torch.Tensor = None,
+                  emo_feats: torch.Tensor = None,
+                  emolabs: torch.Tensor = None,
+                  spembs: torch.Tensor = None,
+                  durations: torch.Tensor = None,
+                  pitch: torch.Tensor = None,
+                  energy: torch.Tensor = None,
+                  **decode_config,
+                  ):
         """
         3 types inference
             1. with reference audio
@@ -120,6 +125,16 @@ class EspnetEmoTTSModel(AbsESPnetModel):
         else:
             raise IOError
         """
-        return self.tts.inference(
+        outs, probs, att_ws = self.tts.inference(
             text=text,
-            emo_feats=emo_feats)
+            speech=speech,
+            emo_feats=emo_feats,
+            emolabs=emolabs)
+        """
+        if self.normalize is not None:
+            # NOTE: normalize.inverse is in-place operation
+            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
+        else:        
+        """
+        outs_denorm = outs
+        return outs, outs_denorm, probs, att_ws

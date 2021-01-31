@@ -9,24 +9,20 @@ import string
 
 # own model
 
-def syn_audio(model, config, text, ref_audio):
+
+def syn_audio(model, config, text, ref_audio, out_dir):
     text2speech = Text2Speech(train_config=config, model_file=model)
     y, sr = librosa.load(ref_audio)
-    print(y.shape)
     # mels = melspectrogram(y, sr, n_mels=80).T
-
     # print("mel_shape:", mels.shape)
 
     speech, *_ = text2speech(text, y)
-
-
     exclude = set(string.punctuation)
 
-    text_space = text.replace(" ", "_").translate(str.maketrans('_', '_', string.punctuation))
-
-    out = "result_blizzard13_gst_tacotron2/emotion/" + text_space + os.path.basename(ref_audio)
-
+    text_nospace = text.replace(" ", "_").translate(str.maketrans('_', '_', string.punctuation))
+    out = os.path.join(out_dir, text_nospace, os.path.basename(ref_audio))
     soundfile.write(out, speech.numpy(), text2speech.fs, "PCM_16")
+
 
 if __name__ == '__main__':
     model = "/home/rosen/Project/espnet/egs2/blizzard2013/tts1/blizzard2013_part_preprocess/exp/tts_train_fbank_phn_tacotron_g2p_en_no_space/120epoch.pth"
@@ -35,5 +31,6 @@ if __name__ == '__main__':
     # ref_audio = "ref_audio/speaker/p245_001_m1.wav"
     ref_audio = "ref_audio/emotion/CB-SCA-01-100_normal.wav"
     text = "I hate work at home."
+    out_dir = "result_blizzard13_gst_tacotron2/emotion/"
 
-    syn_audio(model, config, text, ref_audio)
+    syn_audio(model, config, text, ref_audio, out_dir)

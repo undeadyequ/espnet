@@ -21,7 +21,7 @@ from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.npy_scp import NpyScpWriter
-from espnet2.tasks.tts import TTSTask
+from espnet2.tasks.tts2 import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.duration_calculator import DurationCalculator
@@ -36,6 +36,7 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+import librosa
 
 
 class Text2Speech:
@@ -76,8 +77,12 @@ class Text2Speech:
         self.train_args = train_args
         self.model = model
         self.tts = model.tts
-        self.normalize = model.normalize
-        self.feats_extract = model.feats_extract
+        if train_args.tts == "emocontrl":
+            self.normalize = None
+            self.feats_extract = None
+        else:
+            self.normalize = model.normalize
+            self.feats_extract = model.feats_extract
         self.duration_calculator = DurationCalculator()
         self.preprocess_fn = TTSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
@@ -128,6 +133,8 @@ class Text2Speech:
         self,
         text: Union[str, torch.Tensor, np.ndarray],
         speech: Union[torch.Tensor, np.ndarray] = None,
+        emo_feats: Union[torch.Tensor, np.ndarray] = None,
+        emolabs: Union[torch.Tensor, np.ndarray] = None,
         durations: Union[torch.Tensor, np.ndarray] = None,
     ):
         assert check_argument_types()
@@ -143,6 +150,10 @@ class Text2Speech:
             batch["speech"] = speech
         if durations is not None:
             batch["durations"] = durations
+        if emolabs is not None:
+            batch["emolabs"] = emolabs
+        if emo_feats is not None:
+            batch["emo_feats"] = emo_feats
 
         batch = to_device(batch, self.device)
         outs, outs_denorm, probs, att_ws = self.model.inference(
@@ -155,7 +166,9 @@ class Text2Speech:
             duration, focus_rate = None, None
 
         if self.spc2wav is not None:
+            #outs_denorm = librosa.feature.inverse.mel_to_stft(outs_denorm.cpu().numpy(), sr=22050, n_fft=1024)
             wav = torch.tensor(self.spc2wav(outs_denorm.cpu().numpy()))
+            #wav = torch.tensor(self.spc2wav(outs_denorm))
         else:
             wav = None
 

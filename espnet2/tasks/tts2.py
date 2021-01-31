@@ -127,7 +127,7 @@ class TTSTask(AbsTask):
         # --energy_normalize and --energy_normalize_conf
         energy_normalize_choices,
         #
-        #emo_feats_extractor_choices
+        emo_feats_extractor_choices
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here

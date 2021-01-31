@@ -316,51 +316,7 @@ abstractTask use task-specific model with generate function(forward, inference)
   9B. Start training
 
 
-[AbsTask] ->main():None []
-->main_worker(args):None [ESPnetTTSModel]
-  ->build_model(args):model [TTSTask]
-    # feats_extract
-    ->feats_extractor_choices.get_class(args.feats_extract):feats_extract_class
-    ->feats_extract_class(**args.feats_extract_conf):feats_extract
-    # emo_extract
-    ...
-    ->emofeats_extract_class():emo_extract
-    ...
-    ->emo_classifier_class():emo_classifier
-    # Normalizer
-    ...
-    # TTS
-    ...
-    ->tts_class(idim, odim, **args.tts_conf):tts
-    # Extract component
-    ...
-    ->pitch_extract_class(**args.pitch_extract_conf):pitch_extract
 
-    # Conclude
-    ->ESPnetTTSModel(feats_extract, emo_extract, emo_classifier, tts):model
-
-->main(cmd): [TTSTask=>AbsTask]
-  ->main_worker(args): [AbsTask]
-    ->build_optimizer(args, model=model):
-    ->scheduler_classes.get(name):scheduler
-    ->schedulers.append(scheduler)
-    ->build_iter_factory(args):train_iter_factory []
-      ->build_sequence_iter_factory(args, iter_option):SequenceIterFactory [] \
-        ->ESPnetDataset(iter_option.data_path_and_name_and_type, iter_option.preprocess):dataset [torch.utils.data]
-        ->build_batch_sampler(iter_option.batch_type, iter_option.shape_files, batch_size):batch_sampler [samplers]
-          ->NumElementsBatchSampler()
-        ->SequenceIterFactory(dataset, batches, args.seeds):seqFactor []
-          ->self.build_iter(epoch): Dataloader []
-    ->build_iter_factory(args):valid_iter_factory []
-    ->trainer.run(model,
-                  optimizers,
-                  schedulers,
-                  train_iter_factory,
-                  valid_iter_factory,
-                  seeds)
-      ->
-      ->train_one_epoch(model, train)
-        -> model(**batch)
 
 ## args
   - Arguments Input

@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import argparse
+
 
 def split_feats_lab_distb(fld_f):
     basic_dir = os.path.dirname(fld_f)
@@ -34,6 +36,12 @@ def split_feats_lab_distb(fld_f):
             outfile.write(item + "\n")
 
 
+def get_parser():
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("--fld_csv", default="/home/rosen/Project/espnet/files/emo_feats_eval.csv", type=str)
+    return parser
+
+
 if __name__ == '__main__':
-    fld_f = "/home/rosen/Project/espnet/files/emo_feats_eval.csv"
-    split_feats_lab_distb(fld_f)
+    args = get_parser().parse_args()
+    split_feats_lab_distb(args.fld_csv)

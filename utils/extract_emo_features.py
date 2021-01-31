@@ -12,13 +12,13 @@ import math
 import collections
 
 from sklearn.preprocessing import MinMaxScaler
-
+import argparse
 
 def extract_emo_feature(
         audio: str,
-        sr: int = 44100,
+        sr: int = 22050,
         normlaize: bool = False,
-        min_max_stats_f: str = None):
+        min_max_stats_f: str = "/home/Data/blizzard2013_part_preprocess/dump/emo_feats/feats_stats.csv"):
     """
     extract feature like below:
     sig:
@@ -89,3 +89,15 @@ def extract_emo_feature(
             feature_list = scalar.transform(feature_list)
 
     return feature_list
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--audio", type=str)
+    parser.add_argument("--sr", default=22050)
+    parser.add_argument("--normalize", default=True)
+    parser.add_argument("--min_max_stats_f", default="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/feats_stats.csv")
+
+    args = parser.parse_args()
+    feats_ls = extract_emo_feature(args.audio, args.sr, args.normalize, args.min_max_stats_f)
+    print(feats_ls)

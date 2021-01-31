@@ -1,22 +1,21 @@
 """
 This script extract features from existing audio vectors
 """
-
-import pickle
 import librosa
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
 import time
+import os
 import math
-import collections
 
-from sklearn.preprocessing import MinMaxScaler
+from utils.textgrid import TextGrid, Tier
+from matplotlib import pyplot as plt
 
 
-def extract_emo_feature(
+
+def extract_psd_feature(
         audio: str,
-        sr: int = 44100,
+        text_f: str = None,
+        sr: int = 22050,
         normlaize: bool = False,
         min_max_stats_f: str = None):
     """
@@ -30,62 +29,166 @@ def extract_emo_feature(
     audio: audio file or audio list
     return feature_list: np of [n_samples, n_features]
     """
-
-    feature_list = []
     y = []
     if isinstance(audio, str):
         y, _ = librosa.load(audio, sr)
     elif isinstance(audio, np.ndarray):
         y = audio
-    # 1. sig
+
+    # Create folder including wav and text files
+    temp_in_dir = "temp_in"
+    temp_out_dir = "temp_out"
+    os.system("mkdir {}".format(temp_in_dir))
+    os.system("cp {} {}").format(audio, temp_in_dir)
+    os.system("cp {} {}").format(text_f, temp_in_dir)
+    # phone duration
+    phone = extract_duration(temp_in_dir, temp_out_dir)
+
+    # pitch pitch range
+    pitch, _, pitch_range = extract_pitch(y, sr)
+
+    # energy
+    eng = extract_energy(y, sr)
+
+
+    # spectral tilt
+    spc_tilt = extract_spectral_tilt(y)
+
+    return [pitch, pitch_range, phone, eng, spc_tilt]
+
+
+
+
+def extract_sig(y, sr=22050):
     sig_mean = np.mean(abs(y))
-    feature_list.append(sig_mean)  # sig_mean
-    feature_list.append(np.std(y))  # sig_std
+    return sig_mean, np.std(y)
 
-    # 2. rmse
-    rmse = librosa.feature.rms(y + 0.0001)[0]
-    feature_list.append(np.mean(rmse))  # rmse_mean
-    feature_list.append(np.std(rmse))  # rmse_std
 
-    # 3. silence
+def extract_pitch(sig, sr=22050):
+    # pitch
+    pitch, _, _ = librosa.pyin(sig, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'), sr=sr)
+    pitch = [0 if math.isnan(p) else p for p in pitch]
+
+    pitch_mean = np.mean(pitch)
+    pitch_std = np.std(pitch)
+    pitch_range = np.max(pitch) - np.min(pitch)
+
+    return pitch_mean, pitch_std, pitch_range
+
+
+def extract_energy(sig, sr=22050):
+    # rmse
+    rmse = librosa.feature.rms(sig + 0.0001)[0]
+    return np.mean(rmse), np.std(rmse)
+
+
+def extract_harmonic(sig, sr=22050):
+    # harmonic
+    y_harmonic = librosa.effects.hpss(sig)[0]
+    np.mean(y_harmonic) * 1000                  # harmonic (scaled by 1000)
+    return y_harmonic
+
+
+def extract_silence(sig, sr=22050):
+    # silence
+    rmse = librosa.feature.rms(sig + 0.0001)[0]
     silence = 0
     for e in rmse:
         if e <= 0.4 * np.mean(rmse):
             silence += 1
     silence /= float(len(rmse))
-    feature_list.append(silence)  # silence
+    return silence
 
-    # 4. harmonic
-    y_harmonic = librosa.effects.hpss(y)[0]
-    feature_list.append(np.mean(y_harmonic) * 1000)  # harmonic (scaled by 1000)
 
-    # 5. pitch (instead of auto_correlation)
-    cl = 0.45 * sig_mean
-    center_clipped = []
-    for s in y:
-        if s >= cl:
-            center_clipped.append(s - cl)
-        elif s <= -cl:
-            center_clipped.append(s + cl)
-        elif np.abs(s) < cl:
-            center_clipped.append(0)
-    # auto_corrs = librosa.core.autocorrelate(np.array(center_clipped))
-    pitch, _, _ = librosa.pyin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
-    pitch = [0 if math.isnan(p) else p for p in pitch]
-    feature_list.append(np.mean(pitch))
-    feature_list.append(np.std(pitch))
+def force_alignment(executor="tools/force_alignment/montreal-forced-aligner/bin/mfa_align",
+                    wavtext_dir="wav",
+                    lexicon="tools/force_alignment/librispeech-lexicon.txt",
+                    lang="english",
+                    outdir="out"):
+    """
+    use montreal-forced-aligner
+    Args:
+        executor:
+        wavtext_dir:
+        lexicon:
+        lang:
+        outdir:
 
-    feature_list = np.array(feature_list).reshape(1, -1)
+    Returns:
 
-    # Check Normalization
+    """
+    cmd = "{} {} {} {} {}".format(executor, wavtext_dir, lexicon, lang, outdir)
+    os.system(cmd)
 
-    if normlaize:
-        if min_max_stats_f is None:
-            raise IOError("Must input min_max_stats_f")
-        else:
-            scalar = MinMaxScaler()
-            train_feats_stats = pd.read_csv(min_max_stats_f)
-            scalar.fit(train_feats_stats)
-            feature_list = scalar.transform(feature_list)
 
-    return feature_list
+def extract_duration(wavtext_dir,
+                     out_dir,
+                     tools="montreal-forced-aligner",
+                     type="phone",
+                     sr=22050):
+    """
+    extract duration of phone or words
+    Args:
+        sig:
+        text:
+        tools:
+        type: phone or word
+        sr:
+
+    Returns:
+    """
+    # force alignment
+    if tools == "montreal-forced-aligner":
+        force_alignment(wavtext_dir, out_dir)
+
+    # parser
+    # duration for each phone
+    duration = dict()
+    for f in os.listdir(out_dir):
+        fid = TextGrid.load(f)
+        for i, tier in enumerate(fid):
+            if tier.nameid == type:
+                for st, end, unit in tier.simple_transcript:
+                    dur = float(end) - float(st)
+                    if unit in duration.keys():
+                        duration[unit].append(dur)
+                    else:
+                        duration[unit] = [dur]
+            else:
+                pass
+    # duration statistic in word/phone
+    duration_stats = dict()
+    for k, v in duration.items():
+        duration_stats[k] = (np.mean(v), np.std(v))
+
+    # duration in utterance
+    duration_utter_mean = 0
+    for m, std in duration_stats.values():
+        duration_utter_mean += m
+    duration_utter_mean /= len(duration_stats)
+
+    return duration, duration_stats, duration_utter_mean
+
+
+def extract_spectral_tilt(sig):
+    """
+    predictor coefficient of first order all pole model, followed the controllable tts paper
+
+    Args:
+        sig:
+        text:
+
+    Returns:
+
+    """
+    a = librosa.lpc(sig, 1)[1]
+    return a
+
+
+if __name__ == '__main__':
+    executor = "tools/force_alignment/montreal-forced-aligner/bin/mfa_align"
+    wavtext_dir = "wav"
+    lexicon = "tools/force_alignment/librispeech-lexicon.txt"
+    lang = "english"
+    outdir = "out"
+    extract_duration()

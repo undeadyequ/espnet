@@ -349,7 +349,7 @@ class Decoder_extra_input(torch.nn.Module):
         for layer in six.moves.range(dlayers):
             iunits = idim + prenet_units + extra_idim if layer == 0 else dunits
             lstm = torch.nn.LSTMCell(iunits, dunits)
-            if zoneout_rate > 0.0:
+            if zoneout_rate >= 0.0:
                 lstm = ZoneOutCell(lstm, zoneout_rate)
             self.lstm += [lstm]
 

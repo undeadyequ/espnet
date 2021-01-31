@@ -20,7 +20,6 @@ csv="/home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/emo_feats_test
 norm_f="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/feats_stats.csv"
 clf_f="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/rf_classifier.pkl"
 
-
 #
 ${python} -m utils.extract_emofeats_from_scp
     --scp "${scp_f}" \

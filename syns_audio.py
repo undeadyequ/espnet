@@ -19,7 +19,6 @@ def syn_audio(model, config, text, ref_audio):
 
     speech, *_ = text2speech(text, y)
 
-
     exclude = set(string.punctuation)
 
     text_space = text.replace(" ", "_").translate(str.maketrans('_', '_', string.punctuation))
