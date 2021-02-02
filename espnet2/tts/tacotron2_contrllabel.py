@@ -24,6 +24,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet2.tts.prosody.prosody_encoder import ProsodyEncoder
+from espnet2.tts.ser.ser_model import DNNRevNetwork
 
 
 class Tacotron2ControlLoss(torch.nn.Module):
@@ -309,12 +310,17 @@ class Tacotron2_controllable(AbsTTS):
                 gru_layers=gst_gru_layers,
                 gru_units=gst_gru_units,
             )
+        # Prosody from text
         self.prosody = ProsodyEncoder(
                 text_dim=embed_dim,
                 prosody_dim=extra_idim,
                 elayers=3,
                 eunits=128
         )
+        # Prosody from emo_labs and emo_feats(predicted prosody)
+
+        self.ser_rev = DNNRevNetwork(idim=8, edim=6)
+
 
         if spk_embed_dim is None:
             dec_idim = eunits
@@ -485,7 +491,11 @@ class Tacotron2_controllable(AbsTTS):
         spembs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         hs, hlens = self.enc(xs, ilens)
-        prosody = self.prosody(hs)
+
+        #prosody = self.prosody(hs)
+
+        emo_labs, prosody = self.ser_rev(emo_feats)
+
         if self.use_gst:
             style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
@@ -554,11 +564,11 @@ class Tacotron2_controllable(AbsTTS):
 
         # Select controller (ref_audio has been extracted to emo_featsa in ESPnet)
         if emo_feats is not None:
-            prosody = emo_feats.unsqueeze(0)
+            prosody = emo_feats.unsqueeze(0)                           # emo_feats controller(direct control)
         elif emolabs is not None:
-            pass                 # add self.ser model
+            _, prosody = self.ser_rev(emo_labs=emolabs)                 # emo_labs controller
         else:
-            prosody = self.prosody.inference(h)  # if no controller
+            prosody = self.prosody.inference(h)                         # if no controller
 
         if optional_bias is not None:       # is not used
             prosody += optional_bias

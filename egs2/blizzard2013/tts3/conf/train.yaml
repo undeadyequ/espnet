@@ -56,17 +56,18 @@ optim_conf:           # keyword arguments for selected optimizer
 ##########################################################
 #                  Emotion realted SETTING                     #
 ##########################################################
-# emoclassifier: xgboost           # used emotional classifier
-
+emoclassifier: xgboost           # used emotional classifier
+emofeats_extract: librosa
+#emofeats_extract_conf:
 
 
 ##########################################################
 #                  Prosody Feature Extract realted SETTING                     #
 ##########################################################
-prosody_extract: genprosody
-prosody_extract_conf:
-    duration_level: phone
-    duration_tools: montreal-forced-aligner
+#prosody_extract: genprosody
+#prosody_extract_conf:
+#    duration_level: phone
+#    duration_tools: montreal-forced-aligner
 
 
 
@@ -97,3 +98,11 @@ best_model_criterion:
 -   - train
     - loss
     - min
+init_param:
+    - /home/Data/blizzard2013_part_preprocess/exp/tts_train_fbank_phn_tacotron_g2p_en_no_space/22epoch.pth
+    - /home/Data/blizzard2013_part_preprocess/exp/tts_train_fbank_phn_tacotron_g2p_en_no_space/basic_revdnn-best_model.pth
+
+#    - /home/Data/blizzard2013_part_preprocess/exp/tts_train_fbank_phn_tacotron_g2p_en_no_space/22epoch.pth:EspnetEmoTTSModel.dec
+
+#    EspnetEmoTTSModel.prosody.lns.0
+#    EspnetEmoTTSModel.prosody.lns.Tanh

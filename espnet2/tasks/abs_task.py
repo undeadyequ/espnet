@@ -1133,7 +1133,23 @@ class AbsTask(ABC):
                 )
                 yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
-        # 6. Loads pre-trained model
+        # 6. Loads multiple pre-trained model
+        if len(args.init_param) != 0:
+            for path in args.init_param:
+                dict_parm = torch.load(path)
+                if len(dict_parm) == 2:  # check emo_model
+                    dict_parm = dict_parm["model"]
+                    new_dict_parm = dict()
+                    for key in dict_parm.keys():
+                        new_key = "tts.ser_rev." + key
+                        new_dict_parm[new_key] = dict_parm[key]
+                    dict_parm = new_dict_parm
+                    print("pre-trained ser param:", dict_parm.keys())
+                model.load_state_dict(dict_parm, strict=False) # luo's code
+                # check
+                #print(model.state_dict()["tts.ser_rev.ser.0.0.bias"][0:5])
+
+        """ Original Code
         for p in args.init_param:
             logging.info(f"Loading pretrained params from {p}")
             load_pretrained_model(
@@ -1145,7 +1161,7 @@ class AbsTask(ABC):
                 if args.ngpu > 0
                 else "cpu",
             )
-
+        """
         # 7. Resume the training state from the previous epoch
         reporter = Reporter()
         if args.use_amp:

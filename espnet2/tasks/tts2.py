@@ -213,8 +213,6 @@ class TTSTask(AbsTask):
 
         parser.add_argument("--emoclassifier",
                             default="xgboost")
-        parser.add_argument("--emofeats_extract",
-                            default="librosa")
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
