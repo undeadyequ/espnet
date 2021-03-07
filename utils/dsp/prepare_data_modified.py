@@ -26,6 +26,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import logging
 import numpy as np
+from sklearn.feature_extraction.text import TfidfTransformer, TfidfVectorizer
+
 logging.basicConfig(filename="memo_1.txt", level=logging.INFO)
 
 
@@ -137,8 +139,8 @@ def prepare_text_data(audiocode2text, id_emo_fts):
     
     # Generate corpus for extracting tfidf of other db
     text = pd.concat([text_train, text_test], axis=0)
-    text.drop()
-    text.to_csv("test_csv/data/combined/text.csv")
+    text = text.drop(columns=["label"])
+    text.to_csv("test_csv/data/combined/corpus_text.csv", index=False)
 
     print(text_train.shape, text_test.shape)
 
@@ -149,6 +151,45 @@ def pring_df(df_group):
 
 def main():
     prepare_text_data(transcribe_sessions())
+
+def combine_fts():
+    x_train_text = pd.read_csv('test_csv/data/t2e/text_train.csv')
+    x_test_text = pd.read_csv('test_csv/data/t2e/text_test.csv')
+
+    y_train_text = x_train_text['label']
+    y_test_text = x_test_text['label']
+
+    x_train_audio = pd.read_csv('test_csv/data/s2e/audio_train.csv')
+    x_test_audio = pd.read_csv('test_csv/data/s2e/audio_test.csv')
+
+    y_train_audio = x_train_audio['label']
+    y_test_audio = x_test_audio['label']
+
+    y_train = y_train_audio  # since y_train_audio == y_train_text
+    y_test = y_test_audio  # since y_train_audio == y_train_text
+
+    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
+    features_text = tfidf.fit_transform(x_train_text.append(x_test_text).transcription).toarray()
+
+    x_train_text = features_text[:x_train_text.shape[0]]
+    x_test_text = features_text[-x_test_text.shape[0]:]
+
+    print(features_text.shape, x_train_text.shape, x_test_text.shape)
+
+    combined_x_train = np.concatenate((np.array(x_train_audio[x_train_audio.columns[2:]]), x_train_text), axis=1)
+    combined_x_test = np.concatenate((np.array(x_test_audio[x_test_audio.columns[2:]]), x_test_text), axis=1)
+
+    print(combined_x_train.shape, combined_x_test.shape)
+
+    combined_features_dict = {}
+
+    combined_features_dict['x_train'] = combined_x_train
+    combined_features_dict['x_test'] = combined_x_test
+    combined_features_dict['y_train'] = np.array(y_train)
+    combined_features_dict['y_test'] = np.array(y_test)
+
+    with open('test_csv/data/combined/combined_features.pkl', 'wb') as f:
+        pickle.dump(combined_features_dict, f)
 
 
 if __name__ == '__main__':

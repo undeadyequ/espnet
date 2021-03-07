@@ -7,6 +7,7 @@ import argparse
 import pandas as pd
 import h5py
 
+
 def extract_combinedfeats_from_scp(id_wav_f, id_txt_f, corpus_f=None, out_pkl="out.pkl"):
     """
     Extract combined feats into pkl file

@@ -1135,19 +1135,24 @@ class AbsTask(ABC):
 
         # 6. Loads multiple pre-trained model
         if len(args.init_param) != 0:
+            all_dict_parm = dict()
             for path in args.init_param:
+                logging.info(f"Loading pretrained params from {path}")
                 dict_parm = torch.load(path)
-                if len(dict_parm) == 2:  # check emo_model
+                if "model" in dict_parm.keys():  # check emo_model
+                    adapt_dic_parm = dict()
                     dict_parm = dict_parm["model"]
-                    new_dict_parm = dict()
-                    for key in dict_parm.keys():
+                    for key in dict_parm.keys():  # Adapt ser model name to tacotron_contrl_emo
                         new_key = "tts.ser_rev." + key
-                        new_dict_parm[new_key] = dict_parm[key]
-                    dict_parm = new_dict_parm
-                    print("pre-trained ser param:", dict_parm.keys())
+                        adapt_dic_parm[new_key] = dict_parm[key]
+                    all_dict_parm.update(adapt_dic_parm)
+                else:
+                    all_dict_parm.update(dict_parm)
             model.load_state_dict(dict_parm, strict=False)
             # Freeze specific nn
+            logging.info(f"freeze model.tts.ser_rev.rnn and model.tts.ser_rev.out")
             model.tts.ser_rev.rnn.requires_grad = False # ck
+            model.tts.ser_rev.out.requires_grad = False # ck
 
                 # check
                 #print(model.state_dict()["tts.ser_rev.ser.0.0.bias"][0:5])

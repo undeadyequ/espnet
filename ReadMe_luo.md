@@ -122,30 +122,6 @@ data_json = {
 
 
 
-## Experiment
-
-1. train experiment
-    - Real train
-        exp/char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst
-    - Debug train
-
-
-2. Decode/Synthesis experiment
-    - real decode/synthesis
-        model.loss.best_decode         # decode
-        model.loss.best_decode_denorm  # synthesis
-
-    - debug decode
-        ...decode_ys_inference        # delete style branch
-        ...decode_ys_inference_denorm #
-
-1. ck_style_concnt
-
-   --backend pytorch --ngpu 1 --minibatches 0 --outdir ../../egs/blizzard13/tts2_gst/exp/blizzard2013_char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst/results_ck_style_concnt --tensorboard-dir ../../egs/blizzard13/tts2_gst/tensorboard/blizzard2013_char_train_no_dev_pytorch_train_pytorch_tacotron2+cbhg+gst/ck_style_concnt --verbose 1 --seed 1 --train-json  /home/Data/program_data/espnet2/dump/char_train_no_dev/data.json --valid-json /home/Data/program_data/espnet2/dump/char_dev/data.json --config ../../egs/blizzard13/tts2_gst/conf/train_pytorch_tacotron2+cbhg+gst.yaml
-
-2.
-
-
 ## Install
 - install system level package, cmake, sox, sndfile, ffmpeg, flac
 
@@ -318,45 +294,6 @@ abstractTask use task-specific model with generate function(forward, inference)
 
 
 
-## args
-  - Arguments Input
-    - train.yaml
-      - tts_conf is used to give args to model
-      - optim_conf is used to ... optimizer
-    - cmd args in run.sh and tts.sh
-
-  - Parse the Arguments
-    - add_arguments in AbsTask, TTSTask, trainer respectively
-    - no need add_arguments in model since they were gathered by model_conf
-    - implement:
-    ->main():None [AbsTask]
-      ->get_parser():config_argparser.ArgumentParser [ArgumentParser]
-        - cls.add_task_arguments(parser): None [TTSTask]
-        - cls.trainer.add_arguments(parser): None [Trainer]
-      ->parser.parse_args(cmd): args  <= parse cmd, including train.yaml which furthermore parsed by ArgumentParser
-
-
-  ```python
-    dataset = ESPnetDataset(
-        iter_options.data_path_and_name_and_type,
-        float_dtype=args.train_dtype,
-        preprocess=iter_options.preprocess_fn,
-        max_cache_size=iter_options.max_cache_size,
-        max_cache_fd=iter_options.max_cache_fd,
-    )
-    for iiter, (\_, batch) in enumerate(
-        reporter.measure_iter_time(iterator, "iter_time"), 1
-    ):
-    - Iterator, used in trainer, is the a dataloader with indices comming from self-defined sampler
-
-    train_iter_factory = cls.build_iter_factory(
-         args=args,
-         distributed_option=distributed_option,
-         mode="train",
-     )
-  ```
-
-
 ## debug
 --use_preprocessor true --token_type phn --token_list /home/Data/blizzard2013_part_preprocess/data/token_list/phn_tacotron_g2p_en_no_space/tokens.txt --non_linguistic_symbols none --cleaner tacotron --g2p g2p_en_no_space --normalize global_mvn --normalize_conf stats_file=/home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/train/feats_stats.npz --resume false --fold_length 150 --fold_length 800 --output_dir /home/Data/blizzard2013_part_preprocess/exp/tts_train_fbank_phn_tacotron_g2p_en_no_space --config /home/rosen/Project/espnet/egs2/blizzard2013/tts3/conf/train.yaml --odim=80 --train_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/text,text,text --train_data_path_and_name_and_type
 /home/Data/blizzard2013_part_preprocess/dump/emo_feats/emo_feats_etfs.csv,emo_feats,csv_float --train_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/tr_no_dev/feats.scp,speech,kaldi_ark --train_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/train/text_shape.phn --train_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/train/speech_shape --valid_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/dev/text,text,text --valid_data_path_and_name_and_type /home/Data/blizzard2013_part_preprocess/dump/fbank/dev/feats.scp,speech,kaldi_ark --valid_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/valid/text_shape.phn --valid_shape_file /home/Data/blizzard2013_part_preprocess/exp/tts_stats_fbank_phn_tacotron_g2p_en_no_space/valid/speech_shape
@@ -365,16 +302,8 @@ abstractTask use task-specific model with generate function(forward, inference)
   - used in file io directly from scp/ark to numpy array
 
 
-## Dump ‘s subdirectory
-  - fbank, stft, raw
 
 
 ## Question
 speech audio,
 speech txt same Length
-
-
-
-l1_loss=1.185, mse_loss=1.162, bce_loss=0.197, psd_loss=0.009, attn_loss=0.015, loss=2.567
-
-- 1/22
