@@ -23,7 +23,7 @@ lm_config=conf/train_lm_rnn.yaml
 inference_config=conf/decode_asr.yaml
 
 
-./asr.sh \
+asr.sh \
     --token_type "${token_type}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \

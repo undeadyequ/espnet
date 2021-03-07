@@ -277,8 +277,6 @@ if ! "${skip_data_prep}"; then
         log "Stage 1: Data preparation for ${data}/${train_set}, ${data}/${valid_set}, etc."
         # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts}
-
-        utils/
     fi
 
 
@@ -612,12 +610,13 @@ if ! "${skip_train}"; then
                 _odim="$(<${_train_dir}/feats_dim)"
                 _opts+="--odim=${_odim} "
 
-                _emo_scp=emo_feats_etfs.csv
-                _emo_type=csv_float
+                #_emo_scp=emo_feats_etfs.csv
+                #_emo_type=csv_float
+                _emo_scp=emo_feats.hdf5
+                _emo_type=hdf5
                 #_emo_feats_dim="$(<${_train_dir}/emo_feats_dim)"
                 #_opts+="--emo_feats_dim=${_emo_feats_dim} "
             fi
-            echo "Hello1"
             if [ "${num_splits}" -gt 1 ]; then
                 # If you met a memory error when parsing text files, this option may help you.
                 # The corpus is split into subsets and each subset is used for training one by one in order,

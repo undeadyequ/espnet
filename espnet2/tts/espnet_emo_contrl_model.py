@@ -111,7 +111,7 @@ class EspnetEmoTTSModel(AbsESPnetModel):
         3 types inference
             1. with reference audio
             2. with emotional distributions
-            3. with emotional features
+            3. with emotional features    torch.Tensor(feats_dim)
         """
 
         """

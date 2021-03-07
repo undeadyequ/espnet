@@ -1,0 +1,8 @@
+# convert_fbank_to_wav.py --fs 22050 --fmax 7600 --fmin 80 --win_length --n_fft 1024 --n_shift 256 --n_mels 80 --iters 64 scp:../../../test_utils/spectrogram_data/log/feats.1.scp ../../../test_utils/spectrogram_data/wav 
+# Started at Thu Feb 11 12:34:54 JST 2021
+#
+2021-02-11 12:34:56,232 (convert_fbank_to_wav:156) INFO: /home/rosen/Project/espnet/tools/venv/envs/espnet/bin/python3 /home/rosen/Project/espnet/egs2/blizzard2013/tts3/../../../utils/convert_fbank_to_wav.py --fs 22050 --fmax 7600 --fmin 80 --win_length --n_fft 1024 --n_shift 256 --n_mels 80 --iters 64 scp:../../../test_utils/spectrogram_data/log/feats.1.scp ../../../test_utils/spectrogram_data/wav
+2021-02-11 12:34:59,822 (convert_fbank_to_wav:184) INFO: (1) CB-JE-38-95
+2021-02-11 12:35:00,155 (convert_fbank_to_wav:184) INFO: (2) CB-JE-38-96
+# Accounting: time=6 threads=1
+# Ended (code 0) at Thu Feb 11 12:35:00 JST 2021, elapsed time 6 seconds

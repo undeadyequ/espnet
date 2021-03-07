@@ -9,7 +9,7 @@ train_set=train_si284
 valid_set=test_dev93
 test_sets="test_dev93 test_eval92"
 
-./asr.sh \
+asr.sh \
     --lang "en" \
     --use_lm true \
     --token_type char \

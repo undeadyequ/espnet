@@ -1145,9 +1145,9 @@ class AbsTask(ABC):
                         new_dict_parm[new_key] = dict_parm[key]
                     dict_parm = new_dict_parm
                     print("pre-trained ser param:", dict_parm.keys())
-            model.load_state_dict(dict_parm, strict=False) # luo's code
+            model.load_state_dict(dict_parm, strict=False)
             # Freeze specific nn
-            model.tts.ser_rev.ser.requires_grad = False
+            model.tts.ser_rev.rnn.requires_grad = False # ck
 
                 # check
                 #print(model.state_dict()["tts.ser_rev.ser.0.0.bias"][0:5])
@@ -1848,6 +1848,7 @@ class AbsTask(ABC):
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
+            dic = torch.load(model_file, map_location=device)
             model.load_state_dict(torch.load(model_file, map_location=device))
 
         return model, args

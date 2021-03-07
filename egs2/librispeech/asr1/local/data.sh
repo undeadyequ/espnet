@@ -22,7 +22,7 @@ log "$0 $*"
 . utils/parse_options.sh
 
 . ./db.sh
-. ./path.sh
+. path.sh
 . ./cmd.sh
 
 

@@ -25,6 +25,7 @@ from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet2.tts.prosody.prosody_encoder import ProsodyEncoder
 from espnet2.tts.ser.ser_model import DNNRevNetwork
+from espnet2.tts.ser.inv_ser_combine import REVLSTMClassifier
 
 
 class Tacotron2ControlLoss(torch.nn.Module):
@@ -91,7 +92,12 @@ class Tacotron2ControlLoss(torch.nn.Module):
             before_outs, ys
         )
         bce_loss = self.bce_criterion(logits, labels)
-        psd_loss = self.mse_criterion(prosody, emfeats)
+
+        if emfeats.shape[1] > 8:
+            audio_fts, txt_fts = emfeats[:, :8], emfeats[:, 8:]
+        else:
+            audio_fts = emfeats
+        psd_loss = self.mse_criterion(prosody, audio_fts[:, :8])
 
         # make weighted mask and apply it
         if self.use_weighted_masking:
@@ -296,7 +302,6 @@ class Tacotron2_controllable(AbsTTS):
         )
 
 
-
         if self.use_gst:
             self.gst = StyleEncoder(
                 idim=odim,  # the input is mel-spectrogram
@@ -317,10 +322,11 @@ class Tacotron2_controllable(AbsTTS):
                 elayers=3,
                 eunits=128
         )
+
         # Prosody from emo_labs and emo_feats(predicted prosody)
+        #self.ser_rev = DNNRevNetwork(idim=8, edim=6)
 
-        self.ser_rev = DNNRevNetwork(idim=8, edim=6)
-
+        self.ser_rev = REVLSTMClassifier(input_dim=2301, emo_dim=4, prosody_dim=8)  # ck
 
         if spk_embed_dim is None:
             dec_idim = eunits
@@ -490,18 +496,39 @@ class Tacotron2_controllable(AbsTTS):
         eilens: torch.Tensor,
         spembs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+
+        Args:
+            xs:
+            ilens:
+            ys:
+            olens:
+            emo_feats:   audio_fts [,8] or audio_txt_fts [, 2301] (according to corp size)
+            eilens:
+            spembs:
+
+        Returns:
+
+        """
         hs, hlens = self.enc(xs, ilens)
 
         #prosody = self.prosody(hs)
+        # Judge emo_fts is combined or audio_fts
+        if emo_feats.shape[1] > 8:
+            audio_fts, txt_fts = emo_feats[:, :8], emo_feats[:, 8:]
+        else:
+            audio_fts = emo_feats
+        logging.info("emo_feats is {}".format(emo_feats.cpu().detach().numpy()))
 
         emo_labs, prosody = self.ser_rev(emo_feats)
+        logging.info("emo_labs is {}".format(emo_labs.cpu().detach().numpy()))
 
         if self.use_gst:
             style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
-        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys, emo_feats)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys, audio_fts)
         return after_outs, before_outs, logits, att_ws, prosody
 
     def inference(
@@ -566,9 +593,12 @@ class Tacotron2_controllable(AbsTTS):
         if emo_feats is not None:
             prosody = emo_feats.unsqueeze(0)                           # emo_feats controller(direct control)
         elif emolabs is not None:
-            _, prosody = self.ser_rev(emo_labs=emolabs)                 # emo_labs controller
+            #_, prosody = self.ser_rev(emo_labs=emolabs.unsqueeze(0))                 # emo_labs controller
+            _, prosody = self.ser_rev(emo_labs=emolabs.unsqueeze(0))   # ck
+
         else:
-            prosody = self.prosody.inference(h)                         # if no controller
+            print("Should input controller, emo_feats or emolabs!")
+            prosody = self.ser_rev(emo_labs=[0, 1, 0, 0, 0, 0, 0])                        # if no controller
 
         if optional_bias is not None:       # is not used
             prosody += optional_bias

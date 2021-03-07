@@ -10,15 +10,18 @@ from tqdm import tqdm
 import time
 import math
 import collections
+import os
 
 from sklearn.preprocessing import MinMaxScaler
 import argparse
+from utils.dsp.silenceremove import remove_silence_from_wav
 
 def extract_emo_feature(
         audio: str,
         sr: int = 22050,
         normlaize: bool = False,
-        min_max_stats_f: str = "/home/Data/blizzard2013_part_preprocess/dump/emo_feats/feats_stats.csv"):
+        remove_silence: bool = True,
+        min_max_stats_f: str = "./normal/iemocap_train_feats_stats.csv"):
     """
     extract feature like below:
     sig:
@@ -30,11 +33,16 @@ def extract_emo_feature(
     audio: audio file or audio list
     return feature_list: np of [n_samples, n_features]
     """
-
     feature_list = []
     y = []
     if isinstance(audio, str):
-        y, _ = librosa.load(audio, sr)
+        if remove_silence:
+            temp_f = "temp.wav"
+            remove_silence_from_wav(audio, agress=2, out_wav=temp_f)
+            y, _ = librosa.load(temp_f, sr)
+            os.remove(temp_f)
+        else:
+            y, _ = librosa.load(audio, sr)
     elif isinstance(audio, np.ndarray):
         y = audio
     # 1. sig
@@ -70,10 +78,12 @@ def extract_emo_feature(
         elif np.abs(s) < cl:
             center_clipped.append(0)
     # auto_corrs = librosa.core.autocorrelate(np.array(center_clipped))
-    pitch, _, _ = librosa.pyin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
+    pitch, _, _ = librosa.pyin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'), sr=sr)
     pitch = [0 if math.isnan(p) else p for p in pitch]
     feature_list.append(np.mean(pitch))
     feature_list.append(np.std(pitch))
+    # feature_list.append(1000 * np.max(auto_corrs)/len(auto_corrs))  # auto_corr_max (scaled by 1000)
+    # feature_list.append(np.std(auto_corrs))  # auto_corr_std
 
     feature_list = np.array(feature_list).reshape(1, -1)
 

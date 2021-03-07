@@ -27,7 +27,7 @@ inference_config=conf/decode.yaml
 # g2p=g2p_en # Include word separator
 g2p=g2p_en_no_space # Include no word separator
 
-./tts.sh \
+tts.sh \
     --lang en \
     --feats_type raw \
     --fs "${fs}" \

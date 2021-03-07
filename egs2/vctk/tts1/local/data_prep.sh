@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # shellcheck disable=SC1091
-. ./path.sh || exit 1;
+. path.sh || exit 1;
 
 num_dev=5
 num_eval=5

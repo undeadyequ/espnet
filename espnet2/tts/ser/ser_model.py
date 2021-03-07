@@ -9,7 +9,7 @@ class SER_XGB(torch.nn.Module):
         pass
 
 class DNNRevNetwork(torch.nn.Module):
-    def __init__(self, idim, edim, units=128, layers=2):
+    def __init__(self, idim, edim, units=256, layers=3):
         super(DNNRevNetwork, self).__init__()
         self.ser = torch.nn.ModuleList()
 
@@ -50,6 +50,7 @@ class DNNRevNetwork(torch.nn.Module):
         if emo_feats is not None:
             for i in range(len(self.ser)):
                 emo_feats = self.ser[i](emo_feats)
+                print("{}th output of ser is {}".format(i, emo_feats.cpu().detach().numpy()))
             emo_labs = emo_feats
 
             for i in range(len(self.in_ser)):

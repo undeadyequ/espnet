@@ -36,6 +36,8 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+from parallel_wavegan.utils import load_model
+
 import librosa
 
 
@@ -136,6 +138,7 @@ class Text2Speech:
         emo_feats: Union[torch.Tensor, np.ndarray] = None,
         emolabs: Union[torch.Tensor, np.ndarray] = None,
         durations: Union[torch.Tensor, np.ndarray] = None,
+        mels: Union[torch.Tensor, np.ndarray] = None,
     ):
         assert check_argument_types()
 
@@ -156,7 +159,7 @@ class Text2Speech:
             batch["emo_feats"] = emo_feats
 
         batch = to_device(batch, self.device)
-        outs, outs_denorm, probs, att_ws = self.model.inference(
+        outs, _, probs, att_ws = self.model.inference(
             **batch, **self.decode_config
         )
 
@@ -165,14 +168,13 @@ class Text2Speech:
         else:
             duration, focus_rate = None, None
 
+        # Use Vocoder
         if self.spc2wav is not None:
-            #outs_denorm = librosa.feature.inverse.mel_to_stft(outs_denorm.cpu().numpy(), sr=22050, n_fft=1024)
-            wav = torch.tensor(self.spc2wav(outs_denorm.cpu().numpy()))
-            #wav = torch.tensor(self.spc2wav(outs_denorm))
+            wav = torch.tensor(self.spc2wav(outs.cpu().numpy()))  # original
         else:
             wav = None
 
-        return wav, outs, outs_denorm, probs, att_ws, duration, focus_rate
+        return wav, outs, _, probs, att_ws, duration, focus_rate
 
     @property
     def fs(self) -> Optional[int]:

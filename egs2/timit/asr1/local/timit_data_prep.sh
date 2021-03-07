@@ -31,7 +31,7 @@ else
     trans_type=phn
 fi
 
-. ./path.sh # Needed for KALDI_ROOT
+. path.sh # Needed for KALDI_ROOT
 export PATH=$PATH:$KALDI_ROOT/tools/irstlm/bin
 sph2pipe=sph2pipe
 if ! command -v "${sph2pipe}" &> /dev/null; then

@@ -40,6 +40,7 @@ cat spk2utt | grep charlotte_bronte_CB > spk2utt_part
 source ../../../../tools/venv/bin/activate espnet
 
 
+# reproduce problem
 lstm = ZoneOutCell(lstm, zoneout_rate)
 
 tensor([[-5.3665e-01, -8.4638e-02, -8.8770e-04,  ...,  5.0022e-03,

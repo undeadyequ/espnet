@@ -11,7 +11,7 @@ num_eval=5
 train_set="tr_no_dev"
 dev_set="dev"
 eval_set="eval1"
-preprocess_dir="/home/Data/blizzard2013_part_preprocess"
+save_dir=
 
 # shellcheck disable=SC1091
 . utils/parse_options.sh || exit 1;
@@ -29,6 +29,8 @@ if [ $# != 1 ]; then
     echo "    --train_set: name of train set (default=${train_set})."
     echo "    --dev_set: name of dev set (default=${dev_set})."
     echo "    --eval_set: name of eval set (default=${eval_set})."
+    echo "    --save_dir: dir to save data (default=${save_dir})."
+
     exit 1
 fi
 
@@ -40,7 +42,7 @@ train_data_dirs=""
 dev_data_dirs=""
 eval_data_dirs=""
 for spk in ${spks}; do
-    data=${preprocess_dir}/data
+    data=${save_dir}
     [ ! -e ${data}/${spk}_train ] && mkdir -p ${data}/${spk}_train
 
     # set filenames

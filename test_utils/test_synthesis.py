@@ -4,6 +4,7 @@ sys.path.append(".")
 from Synthesis import *
 from emoTTS.nets import Hyperparameters as H
 import os
+import torch
 
 syn_text = "it took me a little long time to learning speech generation . now that i have to go back work again."
 model_path_300 = "../exp_result/contrl_gst/state/epoch_300.pt.pt"

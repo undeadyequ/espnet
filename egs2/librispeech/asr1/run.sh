@@ -13,7 +13,7 @@ asr_config=conf/tuning/train_asr_conformer.yaml
 lm_config=conf/tuning/train_lm_adam.yaml
 inference_config=conf/decode_asr.yaml
 
-./asr.sh \
+asr.sh \
     --lang en \
     --ngpu 4 \
     --nbpe 5000 \

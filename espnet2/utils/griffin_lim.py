@@ -15,6 +15,12 @@ from typing import Optional
 import librosa
 import numpy as np
 
+from parallel_wavegan.utils import load_model
+import torch
+from scipy.io.wavfile import write
+import time
+
+
 EPS = 1e-10
 
 
@@ -55,7 +61,7 @@ def griffin_lim(
     n_shift: int,
     win_length: int = None,
     window: Optional[str] = "hann",
-    n_iter: Optional[int] = 32,
+    n_iter: Optional[int] = 100,
 ) -> np.ndarray:
     """Convert linear spectrogram into waveform using Griffin-Lim.
 
@@ -105,6 +111,30 @@ def griffin_lim(
     return y
 
 
+def wavegan(
+    mels,
+    vocoder_path="/home/rosen/Project/espnet/downloads/en/parallel_wavegan/"
+                 "ljspeech.parallel_wavegan.v2/checkpoint-400000steps.pkl"
+) -> np.ndarray:
+    """
+
+    Args:
+        mels: (T, n_mels)
+        vocoder_path:
+
+    Returns:
+
+    """
+    vocoder = load_model(vocoder_path)
+    vocoder.remove_weight_norm()
+    vocoder = vocoder.eval().to("cpu")
+    with torch.no_grad():
+        y = vocoder.inference(mels)
+    y_np = y.view(-1).cpu().numpy()
+    #y_np = 10 * y_np
+    return y_np
+
+
 # TODO(kan-bayashi): write as torch.nn.Module
 class Spectrogram2Waveform(object):
     """Spectrogram to waveform conversion module."""
@@ -119,7 +149,8 @@ class Spectrogram2Waveform(object):
         window: Optional[str] = "hann",
         fmin: int = None,
         fmax: int = None,
-        griffin_lim_iters: Optional[int] = 32,
+        griffin_lim_iters: Optional[int] = 500,
+        use_wavegan: bool = False
     ):
         """Initialize module.
 
@@ -136,6 +167,7 @@ class Spectrogram2Waveform(object):
 
         """
         assert check_argument_types()
+        self.use_wavgan = use_wavegan
         self.fs = fs
         self.logmel2linear = (
             partial(
@@ -151,6 +183,9 @@ class Spectrogram2Waveform(object):
             win_length=win_length,
             window=window,
             n_iter=griffin_lim_iters,
+        )
+        self.wavegan = partial(
+            wavegan,
         )
         self.params = dict(
             n_fft=n_fft,
@@ -180,6 +215,9 @@ class Spectrogram2Waveform(object):
             Reconstructed waveform (N,).
 
         """
-        if self.logmel2linear is not None:
-            spc = self.logmel2linear(spc)
-        return self.griffin_lim(spc)
+        if self.use_wavgan:
+            return self.wavegan(spc)
+        else:
+            if self.logmel2linear is not None:
+                spc = self.logmel2linear(spc)
+            return self.griffin_lim(spc)

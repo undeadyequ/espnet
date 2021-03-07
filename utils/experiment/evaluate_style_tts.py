@@ -49,8 +49,6 @@ class ExpStyleTTS:
         if not os.path.isdir(self.out_dir):
             os.system("mkdir {}".format(out_dir))
 
-        if vocoder_conf is None:
-            vocoder_conf = {"n_fft": 1024, "n_shift": 256, "fs": 22050, "n_mels": 80}
         self.text2speech = Text2Speech(train_config=config, model_file=model, vocoder_conf=vocoder_conf)
         self.text_nospacepunc = self.text.replace(" ", "_").translate(str.maketrans('_', '_', string.punctuation))
 
@@ -69,16 +67,25 @@ class ExpStyleTTS:
             soundfile.write(out, speech.numpy(), self.text2speech.fs, "PCM_16")
 
     def exp_emo_lab(self, emo_labs):
-        if type(emo_labs) == type(""):
-            emo_labs = [float(l) for l in emo_labs.split(" ")]
+        # Find exp_emof
+        # show input emo_contrls and synthesized emo_contrls
+        for lab in emo_labs:
+            print("input emo_labs:{}".format(lab))
+            speech, *_ = self.text2speech(self.text, emolabs=torch.Tensor(lab))
+            # extract feature
+            #syn_emof = extract_emo_feature(speech.numpy(), normlaize=True)[0]
+            #print("syn emo_contrl:{}".format(syn_emof))
 
-        speech, *_ = self.text2speech(self.text, emo_labs=self.emo_labs)
-        extract_emo_feature(speech,
-                            normlaize=True,
-                            min_max_stats_f="/home/Data/blizzard2013_part_preprocess/dump/emo_feats/feats_stats.csv")
+            #syn_exp_emofs.append(syn_emof[exp_emof])
+            # Syn wav
+            print("".join(["{:.1f}".format(l) for l in lab]).replace(".", ""))
 
-        out = os.path.join(self.out_dir, self.text_nospacepunc, torch.Tensor(emo_labs))
-        soundfile.write(out, speech.numpy(), self.text2speech.fs, "PCM_16")
+            out = os.path.join(self.out_dir, self.text_nospacepunc.lower() + "_" +
+                               "".join(["{:.1f}".format(l) for l in lab]).replace(".", "") + ".wav")
+            soundfile.write(out, speech.numpy(), self.text2speech.fs, "PCM_16")
+
+        # draw picture only for comparing emo_contrl
+        #draw_line(inp_exp_emofs, syn_exp_emofs, exp_emof)
 
 
     def exp_psd_contrl(self, psds):
@@ -88,7 +95,6 @@ class ExpStyleTTS:
             psds: [psd_n, 8]
 
         Returns:
-
 
         """
         # Find exp_emof
@@ -111,7 +117,7 @@ class ExpStyleTTS:
             syn_exp_emofs.append(syn_emof[exp_emof])
             # Syn wav
             out = os.path.join(self.out_dir, self.text_nospacepunc.lower() + "_" + str(exp_emof) + "_"
-                               + str(input_emof[exp_emof]) + ".wav")
+                               + str(input_emof[exp_emof]).replace(".","") + ".wav")
             soundfile.write(out, speech.numpy(), self.text2speech.fs, "PCM_16")
 
         # draw picture only for comparing emo_contrl
@@ -144,12 +150,15 @@ if __name__ == '__main__':
     parser.add_argument("--out_dir", type=str)
     parser.add_argument("--ref_dir", type=str, default=None)
     parser.add_argument("--emo_feats", nargs='+', default=None)
-    parser.add_argument("--emo_labs", type=str, default=None)
+    parser.add_argument("--emo_labs", nargs='+', default=None)
 
     args = parser.parse_args()
     print("outd_dir", args.out_dir)
     print("text", args.text)
-    exp = ExpStyleTTS(args.model, args.config, args.text, args.out_dir)
+    vocoder_conf = {"n_fft": 1024, "n_shift": 256, "fs": 22050, "n_mels": 80,
+                    "win_length": 1024, "fmax":7600, "fmin":80,
+                    "use_wavegan": False}
+    exp = ExpStyleTTS(args.model, args.config, args.text, args.out_dir, vocoder_conf)
 
     #exp.exp_ref_audio(args.ref_dir)
     if args.emo_feats is not None:
@@ -159,4 +168,11 @@ if __name__ == '__main__':
             emo_feats.append(psds_l)
         exp.exp_psd_contrl(emo_feats)
     #exp.exp_emo_lab(args.emo_labs)
+
+    if args.emo_labs is not None:
+        emo_labs = []
+        for psd in args.emo_labs:
+            emo_lab_l = [float(l) for l in psd.split(" ")]
+            emo_labs.append(emo_lab_l)
+        exp.exp_emo_lab(emo_labs)
 

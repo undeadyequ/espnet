@@ -22,7 +22,7 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-. ./path.sh
+. path.sh
 . ./cmd.sh
 . ./db.sh
 
